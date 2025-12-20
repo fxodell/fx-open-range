@@ -28,12 +28,19 @@ Automated trading application that implements the **Price Trend (SMA20) Directio
 ### Prerequisites
 
 ```bash
-pip install requests pandas numpy
+pip install -r requirements.txt
 ```
 
 ### Configuration
 
-1. **API Token**: Set your OANDA API token in `app/config/settings.py` or use environment variable:
+1. **API Token**: Create a `.env` file in the project root with your OANDA API token:
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your token:
+   # OANDA_API_TOKEN=your-token-here
+   ```
+   
+   Alternatively, you can set it as an environment variable:
    ```bash
    export OANDA_API_TOKEN="your-token-here"
    ```
@@ -168,6 +175,14 @@ Press Ctrl+C to stop
 ```
 
 ## Troubleshooting
+
+### API Token Not Set
+
+If you see an error about `OANDA_API_TOKEN` not being set:
+1. Make sure you have created a `.env` file in the project root
+2. Copy `.env.example` to `.env` if needed: `cp .env.example .env`
+3. Add your token to `.env`: `OANDA_API_TOKEN=your-token-here`
+4. Verify the `.env` file is in the project root (same directory as `requirements.txt`)
 
 ### Connection Errors
 - Check API token is correct

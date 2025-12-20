@@ -5,16 +5,17 @@ Configuration settings for the trading application.
 import os
 from typing import Optional
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class Settings:
     """Application settings and configuration."""
     
     # OANDA API Configuration
-    OANDA_API_TOKEN: str = os.getenv(
-        "OANDA_API_TOKEN",
-        "965884e308ff2a75fcf9a5011a2cc39a-616820942fc0746b78b04062b603c20d"
-    )
+    OANDA_API_TOKEN: Optional[str] = os.getenv("OANDA_API_TOKEN")
     OANDA_PRACTICE_MODE: bool = os.getenv("OANDA_PRACTICE_MODE", "true").lower() == "true"
     OANDA_ACCOUNT_ID: Optional[str] = os.getenv("OANDA_ACCOUNT_ID", None)
     
@@ -53,7 +54,7 @@ class Settings:
         warnings = []
         
         if not cls.OANDA_API_TOKEN:
-            warnings.append("WARNING: OANDA_API_TOKEN not set!")
+            warnings.append("ERROR: OANDA_API_TOKEN not set! Please set it in .env file or environment variable.")
         
         if not cls.OANDA_PRACTICE_MODE:
             warnings.append("⚠️  LIVE MODE ENABLED - Real money trading!")

@@ -173,7 +173,7 @@ The status command shows open positions, or check in OANDA platform.
 
 ### "Connection failed"
 - Check internet connection
-- Verify API token in `app/config/settings.py`
+- Verify API token in `.env` file (create from `.env.example` if needed)
 - Check OANDA API status
 
 ### "Insufficient data"

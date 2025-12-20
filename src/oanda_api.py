@@ -2,6 +2,7 @@
 OANDA API integration for fetching EUR/USD historical data.
 """
 
+import os
 import requests
 import pandas as pd
 import numpy as np
@@ -250,84 +251,4 @@ def save_oanda_data(df: pd.DataFrame, filename: str = "eur_usd_oanda.csv"):
     print(f"Date range: {df['Date'].min()} to {df['Date'].max()}")
     
     return filepath
-
-
-def main():
-    """Example usage."""
-    import sys
-    
-    # API token (from user)
-    API_TOKEN = "965884e308ff2a75fcf9a5011a2cc39a-616820942fc0746b78b04062b603c20d"
-    
-    print("=" * 80)
-    print("OANDA API - Fetch EUR/USD Historical Data")
-    print("=" * 80)
-    print()
-    
-    try:
-        # Initialize API client
-        print("Connecting to OANDA API...")
-        api = OandaAPI(API_TOKEN, practice=True)  # Set practice=False for live account
-        
-        # Test connection
-        try:
-            account_info = api.get_account_info()
-            print(f"✓ Connected successfully")
-            print(f"  Account ID: {account_info.get('id', 'N/A')}")
-            print(f"  Account Type: {account_info.get('tags', [{}])[0].get('type', 'N/A') if account_info.get('tags') else 'N/A'}")
-        except Exception as e:
-            print(f"⚠ Warning: Could not get account info: {e}")
-            print("  Continuing anyway...")
-        
-        # Fetch data
-        print("\nFetching EUR/USD daily data...")
-        print("Options:")
-        print("1. Last 1 year (365 days)")
-        print("2. Last 2 years (730 days)")
-        print("3. Last 5 years (~1825 days)")
-        print("4. Custom number of days")
-        
-        choice = input("\nEnter choice (1-4, default=3): ").strip() or "3"
-        
-        if choice == "1":
-            days = 365
-        elif choice == "2":
-            days = 730
-        elif choice == "3":
-            days = 1825
-        elif choice == "4":
-            days = int(input("Enter number of days: "))
-        else:
-            days = 1825
-        
-        print(f"\nFetching {days} days of EUR/USD data...")
-        df = api.fetch_daily_data("EUR_USD", days=days)
-        
-        print(f"✓ Fetched {len(df)} days of data")
-        print(f"  Date range: {df['Date'].min()} to {df['Date'].max()}")
-        
-        # Save to CSV
-        filename = "eur_usd_oanda.csv"
-        filepath = save_oanda_data(df, filename)
-        
-        print(f"\n✓ Data saved successfully!")
-        print(f"\nYou can now use this data for backtesting:")
-        print(f"  python test_long_term.py  # (modify to use {filename})")
-        
-    except requests.exceptions.HTTPError as e:
-        print(f"\n✗ API Error: {e}")
-        if hasattr(e.response, 'text'):
-            print(f"  Response: {e.response.text}")
-        print("\nPossible issues:")
-        print("  - Invalid API token")
-        print("  - Account access issue")
-        print("  - API endpoint incorrect")
-    except Exception as e:
-        print(f"\n✗ Error: {e}")
-        import traceback
-        traceback.print_exc()
-
-
-if __name__ == "__main__":
-    main()
 

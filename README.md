@@ -39,10 +39,8 @@ fx-open-range-project/
 │   ├── eur_usd.csv
 │   ├── eur_usd_long_term.csv
 │   └── eur_usd_oanda.csv
-├── run_analysis.py         # Entry point for backtesting analysis
 ├── requirements.txt        # Python dependencies
 ├── STRATEGY_EXPLANATION.md # Detailed strategy documentation
-├── OANDA_API_GUIDE.md      # OANDA API usage guide
 └── README.md
 ```
 
@@ -67,7 +65,7 @@ pip install -r requirements.txt
 Run the full backtesting analysis:
 
 ```bash
-python run_analysis.py
+python -m src.main
 ```
 
 This will:
@@ -207,7 +205,7 @@ All calculations use only information available at the time:
 
 ### Transaction Costs
 
-Default assumption: 2 pips per trade (spread + commission). Adjust in `run_backtests()` if needed.
+Default assumption: 2 pips per trade (spread + commission). Adjust in backtest functions if needed.
 
 ### Limitations
 
