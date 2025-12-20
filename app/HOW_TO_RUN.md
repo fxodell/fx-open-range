@@ -2,17 +2,7 @@
 
 ## Quick Start (3 Steps)
 
-### Step 1: Test Connection First
-```bash
-python test_app.py
-```
-
-This verifies:
-- ✅ OANDA API connection works
-- ✅ Can fetch market data
-- ✅ Strategy signal generation works
-
-### Step 2: Check Account Status
+### Step 1: Check Connection and Account Status
 ```bash
 python -m app.main --status
 ```
@@ -22,7 +12,7 @@ This shows:
 - Open positions
 - Account summary
 
-### Step 3: Run Trading
+### Step 2: Run Trading
 
 **Option A: Run Once (Test)**
 ```bash
@@ -47,10 +37,7 @@ python -m app.main
 ### Basic Commands
 
 ```bash
-# Test connection
-python test_app.py
-
-# Show account status
+# Show account status (also tests connection)
 python -m app.main --status
 
 # Run once (check and exit)
@@ -88,23 +75,7 @@ python -m app.main --mode live
 
 ## Example Session
 
-### 1. First Time Setup
-
-```bash
-# Test everything works
-python test_app.py
-```
-
-**Expected Output:**
-```
-✓ Connected successfully
-  Account ID: 101-001-30925981-001
-✓ Fetched 29 candles
-✓ Signal generated
-  Signal: long
-```
-
-### 2. Check Your Account
+### 1. Check Your Account
 
 ```bash
 python -m app.main --status
@@ -118,7 +89,7 @@ Unrealized P/L: 0.00 USD
 Open Trades: 0
 ```
 
-### 3. Run a Test (Practice Mode)
+### 2. Run a Test (Practice Mode)
 
 ```bash
 python -m app.main --once
@@ -133,7 +104,7 @@ Order placed successfully
 Done.
 ```
 
-### 4. Run Continuously
+### 3. Run Continuously
 
 ```bash
 python -m app.main
@@ -231,9 +202,9 @@ The status command shows open positions, or check in OANDA platform.
 
 ### For Testing (Practice Mode)
 
-1. **Test connection:**
+1. **Check account status (tests connection):**
    ```bash
-   python test_app.py
+   python -m app.main --status
    ```
 
 2. **Run once to test:**
@@ -312,10 +283,7 @@ python -m app.main
 
 **Most Common Commands:**
 ```bash
-# Test
-python test_app.py
-
-# Status
+# Check status (tests connection)
 python -m app.main --status
 
 # Run once (test)

@@ -1,18 +1,13 @@
 # Quick Start Guide
 
-## 🚀 Quick Start (3 Steps)
+## 🚀 Quick Start (2 Steps)
 
-### 1. Test Connection
-```bash
-python test_app.py
-```
-
-### 2. Check Status
+### 1. Check Status (Tests Connection)
 ```bash
 python -m app.main --status
 ```
 
-### 3. Run Trading (Practice Mode)
+### 2. Run Trading (Practice Mode)
 ```bash
 # Run once (check and execute if needed)
 python -m app.main --once

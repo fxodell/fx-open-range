@@ -8,24 +8,41 @@ This project provides a comprehensive Python framework for:
 - Analyzing EUR/USD daily ranges and open-based movements
 - Detecting market regimes (bull/bear/chop)
 - Designing and backtesting systematic trade-at-open strategies
+- Automated trading on OANDA with the best-performing strategies
 - Exploring additional factors (macro events, volatility patterns, etc.)
+
+The project consists of two main components:
+1. **Backtesting Framework** (`src/`): Research and test trading strategies on historical data
+2. **Trading Application** (`app/`): Automated trading on OANDA using the Price Trend (SMA20) Directional strategy
 
 ## Project Structure
 
 ```
 fx-open-range-project/
-├── data/
-│   └── eur_usd.csv          # Historical EUR/USD OHLC data
-├── src/
-│   ├── __init__.py
-│   ├── data_loader.py       # Data loading and cleaning
-│   ├── core_analysis.py     # Range calculations, distributions, MFE/MAE
-│   ├── regime.py            # Market regime detection
-│   ├── backtest.py          # Backtesting engine
-│   ├── strategies.py        # Strategy definitions
-│   └── main.py              # Main analysis (module)
-├── run_analysis.py          # Entry point script
-├── requirements.txt         # Python dependencies
+├── app/                     # Automated OANDA trading application
+│   ├── main.py             # Trading application entry point
+│   ├── trading_engine.py   # Core trading logic
+│   ├── config/             # Configuration (API tokens, settings)
+│   ├── strategies/         # Strategy implementations
+│   ├── utils/              # OANDA API client
+│   └── *.md                # Application documentation
+├── src/                    # Backtesting framework
+│   ├── data_loader.py      # Data loading and cleaning
+│   ├── core_analysis.py    # Range calculations, distributions, MFE/MAE
+│   ├── regime.py           # Market regime detection
+│   ├── backtest.py         # Backtesting engine
+│   ├── backtest_no_sl.py   # No-stop-loss backtesting engine
+│   ├── strategies.py       # Strategy definitions
+│   ├── oanda_api.py        # OANDA API utilities
+│   └── main.py             # Main analysis (module)
+├── data/                   # Historical EUR/USD OHLC data
+│   ├── eur_usd.csv
+│   ├── eur_usd_long_term.csv
+│   └── eur_usd_oanda.csv
+├── run_analysis.py         # Entry point for backtesting analysis
+├── requirements.txt        # Python dependencies
+├── STRATEGY_EXPLANATION.md # Detailed strategy documentation
+├── OANDA_API_GUIDE.md      # OANDA API usage guide
 └── README.md
 ```
 
@@ -45,7 +62,9 @@ pip install -r requirements.txt
 
 ## Usage
 
-Run the full analysis:
+### Backtesting Framework
+
+Run the full backtesting analysis:
 
 ```bash
 python run_analysis.py
@@ -57,6 +76,24 @@ This will:
 3. Detect market regimes (bull/bear/chop)
 4. Backtest multiple strategies
 5. Display comprehensive performance metrics
+
+### Automated Trading Application
+
+For automated trading on OANDA, see the [Trading Application documentation](app/README.md).
+
+Quick start:
+```bash
+# Check account status
+python -m app.main --status
+
+# Run once (practice mode)
+python -m app.main --once
+
+# Run continuously
+python -m app.main
+```
+
+See `app/HOW_TO_RUN.md` for detailed instructions.
 
 ## Core Analysis
 
