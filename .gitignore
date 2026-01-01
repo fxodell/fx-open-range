@@ -66,3 +66,22 @@ htmlcov/
 .dmypy.json
 dmypy.json
 
+# Experiments / throwaway
+scratch/
+tmp/
+playground/
+notes/
+sandbox/
+*.scratch.*
+*.tmp.*
+
+# OS/editor
+.DS_Store
+.vscode/
+.cursor/
+
+# Claude/Assistant files
+.claude/
+
+# Cursor
+.cursor/

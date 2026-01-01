@@ -293,6 +293,4 @@ python -m app.main --once
 python -m app.main
 ```
 
-That's it! Start with testing, then run once, then go continuous.
-
 

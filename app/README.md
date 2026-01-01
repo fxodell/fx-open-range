@@ -40,7 +40,7 @@ pip install -r requirements.txt
    # OANDA_API_TOKEN=your-token-here
    ```
    
-   Alternatively, you can set it as an environment variable:
+   Or set as an environment variable:
    ```bash
    export OANDA_API_TOKEN="your-token-here"
    ```

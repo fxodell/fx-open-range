@@ -147,7 +147,16 @@ Day 3:
 
 ---
 
-## Legacy Strategies (Baseline & Comparison)
+## Note on Legacy Strategies
+
+Previous versions of this codebase included baseline and comparison strategies (always_buy, always_sell, regime_aligned, etc.) for research purposes. These have been removed from the production codebase as they were not production-ready. Only the Price Trend (SMA20) Directional strategy is included in the codebase as it has demonstrated consistent performance in extensive backtesting.
+
+For historical reference, these legacy strategies included:
+- Baseline strategies (always buy/sell)
+- Regime-aligned strategies
+- Various filtered strategies
+
+These are documented here for reference but are not implemented in the current codebase.
 
 ## 1. Always Buy (Baseline)
 
@@ -426,7 +435,7 @@ When price opens at an extreme (yesterday's high/low) after a strong move, sugge
 - **Cost per Trade:** 2 pips (spread + commission)
 - **Initial Equity:** $10,000
 
-You can modify these parameters in the backtesting scripts.
+Parameters can be modified in the backtesting scripts.
 
 ---
 

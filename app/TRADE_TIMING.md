@@ -131,15 +131,15 @@ python -m app.main --once
 tail -f logs/trading_$(date +%Y%m%d).log
 ```
 
-## Recommendation
+## Recommended Configuration
 
-For the **Price Trend (SMA20) Directional** strategy, use **Option 1** (22:00-23:00 UTC):
+**Option 1** (22:00-23:00 UTC) is recommended for the **Price Trend (SMA20) Directional** strategy:
 
-1. It matches the backtested strategy (trades at open)
+1. Matches the backtested strategy (trades at open)
 2. Signal is based on completed daily candle
 3. Entry price matches backtest assumptions
 
-To implement, change in `app/config/settings.py`:
+Configure in `app/config/settings.py`:
 
 ```python
 TRADING_START_HOUR: int = 22
