@@ -23,6 +23,8 @@ This document tracks current tasks, improvements, and future work for the FX Ope
 ## Future Enhancements
 
 ### Strategy Development
+- [ ] Session-specific signal optimization (different logic for EUR vs US opens)
+- [ ] Adaptive TP/SL based on session (different levels for EUR vs US)
 - [ ] Macro event integration (ECB, FOMC, NFP, CPI)
 - [ ] Inter-market analysis (DXY, equity indices, bond yields)
 - [ ] Volatility-based strategies
@@ -30,11 +32,12 @@ This document tracks current tasks, improvements, and future work for the FX Ope
 - [ ] Regime-adaptive strategies
 
 ### Data & Analysis
-- [ ] Intraday data support (M5, M15, H1)
+- [ ] Intraday data support (M5, M15, H1) for accurate market open prices
 - [ ] Real-time data streaming
 - [ ] Advanced regime detection
 - [ ] Correlation analysis with other instruments
 - [ ] Volatility clustering analysis
+- [ ] Session-specific performance attribution analysis
 
 ### Infrastructure
 - [ ] Database migration for large datasets
@@ -58,6 +61,12 @@ This document tracks current tasks, improvements, and future work for the FX Ope
 
 ## Completed Tasks
 
+- [x] Dual Market Open Strategy implementation (EUR 8:00 UTC + US 13:00 UTC)
+- [x] Dual market open backtesting engine with session-specific analysis
+- [x] 12-month backtest comparison showing +107% improvement over single daily open
+- [x] Market session utilities for EUR and US market open times
+- [x] Market open price approximation from daily OHLC data
+- [x] Live trading integration for dual market open strategy
 - [x] Initial backtesting framework
 - [x] SMA20 strategy implementation
 - [x] OANDA API integration

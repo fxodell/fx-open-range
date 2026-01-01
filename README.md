@@ -13,7 +13,9 @@ This project provides a comprehensive Python framework for:
 
 The project consists of two main components:
 1. **Backtesting Framework** (`src/`): Research and test trading strategies on historical data
-2. **Trading Application** (`app/`): Automated trading on OANDA using the Price Trend (SMA20) Directional strategy
+2. **Trading Application** (`app/`): Automated trading on OANDA using Price Trend (SMA20) Directional strategies
+   - **Single Daily Open Strategy**: Trades at 22:00 UTC (daily candle open)
+   - **Dual Market Open Strategy**: Trades at EUR (8:00 UTC) and US (13:00 UTC) market opens
 
 ## Project Structure
 
@@ -25,7 +27,8 @@ fx-open-range-project/
 │   ├── config/             # Configuration (API tokens, settings)
 │   │   └── settings.py     # Trading settings and configuration
 │   ├── strategies/         # Strategy implementations
-│   │   └── sma20_strategy.py
+│   │   ├── sma20_strategy.py
+│   │   └── dual_market_open_strategy.py
 │   ├── utils/              # OANDA API client
 │   │   └── oanda_client.py
 │   ├── README.md           # Trading app documentation
@@ -38,6 +41,8 @@ fx-open-range-project/
 │   ├── regime.py           # Market regime detection
 │   ├── backtest.py         # Backtesting engine
 │   ├── backtest_no_sl.py   # No-stop-loss backtesting engine
+│   ├── backtest_dual_market.py  # Dual market open backtesting engine
+│   ├── market_sessions.py  # Market session utilities
 │   ├── strategies.py       # Strategy definitions
 │   ├── oanda_api.py        # OANDA API utilities
 │   └── main.py             # Main analysis (module)
@@ -85,8 +90,7 @@ pip install -r requirements.txt
 
 ### Backtesting Framework
 
-Run the full backtesting analysis:
-
+**Run full backtesting analysis:**
 ```bash
 python -m src.main
 ```
@@ -97,6 +101,14 @@ This will:
 3. Detect market regimes (bull/bear/chop)
 4. Backtest multiple strategies
 5. Display comprehensive performance metrics
+6. **Compare single vs dual market open strategies**
+
+**Run 12-month backtest comparison:**
+```bash
+python backtest_12month.py
+```
+
+This compares single daily open vs dual market open strategies over the past 12 months.
 
 ### Automated Trading Application
 
@@ -110,17 +122,29 @@ python -m app.main --status
 # Run once (practice mode - check signal and execute if needed)
 python -m app.main --once
 
-# Run continuously (checks every 60 seconds, trades during 22:00-23:00 UTC window)
+# Run continuously (checks every 60 seconds)
 python -m app.main
 ```
 
-**Key Features:**
+**Available Strategies:**
+
+1. **Single Daily Open Strategy** (Default when dual market disabled):
+   - **Trading window:** 22:00-23:00 UTC (EUR/USD daily candle open)
+   - **12-Month Performance:** +1,399 pips, 78% win rate, 240 trades
+   - **Max trades:** 1 per day
+
+2. **Dual Market Open Strategy** (Recommended - enabled by default):
+   - **Trading windows:** 8:00 UTC (EUR open) and 13:00 UTC (US open)
+   - **12-Month Performance:** +2,900 pips, 87% win rate, 428 trades
+   - **Improvement:** +107% more pips vs single daily open
+   - **Max trades:** 2 per day (one per session, but only if first trade closed)
+   - See [Dual Market Open Guide](docs/DUAL_MARKET_OPEN_GUIDE.md) for setup
+
+**Common Features:**
 - **Practice mode by default** (safe for testing)
-- **Trading window:** 22:00-23:00 UTC (EUR/USD daily candle open)
 - **Strategy:** Price Trend (SMA20) Directional
 - **Take Profit:** 10 pips
 - **Stop Loss:** None (EOD exit if TP not hit)
-- **Max trades:** 1 per day
 - **Position size:** 1 unit (micro lot)
 
 See `app/HOW_TO_RUN.md` for detailed instructions and `app/TRADE_TIMING.md` for timing details.
@@ -157,17 +181,38 @@ Regimes are classified using:
 
 ## Strategies
 
-The framework includes the **Price Trend (SMA20) Directional** strategy, which is the only production-ready strategy based on comprehensive backtesting.
+The framework includes two production-ready strategies based on comprehensive backtesting:
+
+### 1. Single Daily Open Strategy
 
 **Price Trend (SMA20) Directional:**
 - **Logic:** Buy when yesterday's Close > SMA20 (uptrend), Sell when yesterday's Close < SMA20 (downtrend)
 - **Backtest Performance (5 years):** 82.06% win rate, +7,945.95 pips, 83.88 pips max drawdown
+- **12-Month Performance:** +1,399 pips, 78% win rate, 240 trades
 - **Live Trading Parameters:**
   - Take Profit: 10 pips
   - Stop Loss: None (exit at end-of-day if TP not hit)
   - Entry: At daily open (22:00 UTC)
   - Max 1 trade per day
-- **See:** [Strategy Documentation](STRATEGY_EXPLANATION.md) for full details
+
+### 2. Dual Market Open Strategy (Recommended)
+
+**Price Trend (SMA20) Directional - Dual Market:**
+- **Logic:** Same SMA20 logic, trades at both EUR and US market opens
+- **12-Month Performance:** +2,900 pips, 87% win rate, 428 trades
+- **Improvement:** +107% more pips vs single daily open
+- **Live Trading Parameters:**
+  - Take Profit: 10 pips
+  - Stop Loss: None (exit at end-of-day if TP not hit)
+  - Entry: EUR market open (8:00 UTC) and/or US market open (13:00 UTC)
+  - Max 2 trades per day (one per session, but only if first trade closed)
+  - Only one position open at a time
+- **Session Performance:**
+  - EUR Market: +1,399 pips, 78% win rate, 240 trades
+  - US Market: +1,501 pips, 100% win rate, 188 trades
+- **See:** [Dual Market Open Guide](docs/DUAL_MARKET_OPEN_GUIDE.md) for setup and [Dual Market Open Strategy](docs/DUAL_MARKET_OPEN_STRATEGY.md) for details
+
+**See:** [Strategy Documentation](STRATEGY_EXPLANATION.md) for full details
 
 ### Adding Custom Strategies
 
@@ -216,7 +261,11 @@ The backtesting engine:
 - `take_profit_pips`: 10.0 pips
 - `stop_loss_pips`: None (EOD exit)
 - `position_size`: 1 unit (micro lot)
-- `trading_hours`: 22:00-23:00 UTC (daily candle open window)
+- `dual_market_open_enabled`: True (default, recommended)
+- `eur_market_open_hour`: 8 (8:00 UTC)
+- `us_market_open_hour`: 13 (13:00 UTC)
+- `max_daily_trades`: 2 (when dual market enabled)
+- `trading_hours`: 22:00-23:00 UTC (used only when dual market disabled)
 
 These differences reflect the strategy optimization: the 10-pip TP with EOD exit has shown better risk-adjusted returns in testing.
 
@@ -271,11 +320,16 @@ All calculations use only information available at the time:
 
 ### Trading Hours
 
-**Live Trading:** The application trades during a 1-hour window (22:00-23:00 UTC) which corresponds to the EUR/USD daily candle open. This matches the "trade at the open" strategy design.
+**Single Daily Open Strategy:**
+- Trades during 1-hour window (22:00-23:00 UTC) at daily candle open
+- Configuration: `TRADING_START_HOUR: 22`, `TRADING_END_HOUR: 23`
 
-**Configuration:** Trading hours can be adjusted in `app/config/settings.py`:
-- `TRADING_START_HOUR`: 22 (22:00 UTC)
-- `TRADING_END_HOUR`: 23 (23:00 UTC)
+**Dual Market Open Strategy (Default):**
+- Trades at EUR market open: 8:00 UTC (London session)
+- Trades at US market open: 13:00 UTC (New York session, 8:00 AM EST)
+- Configuration: `DUAL_MARKET_OPEN_ENABLED: True` in `app/config/settings.py`
+
+**Configuration:** Trading settings can be adjusted in `app/config/settings.py`
 
 ### Limitations
 
@@ -327,10 +381,11 @@ Potential areas for extension:
   - Volatility indices (VIX)
 
 - **Advanced Features:**
-  - Adaptive TP/SL based on ADR
+  - Session-specific signal optimization (different logic for EUR vs US opens)
+  - Adaptive TP/SL based on ADR or session
   - Day-of-week patterns
   - Calendar effects (month-end, quarter-end)
-  - Intraday refinement with M5/M15/H1 data
+  - Intraday refinement with M5/M15/H1 data for accurate market open prices
 
 ## License
 

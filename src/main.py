@@ -21,7 +21,10 @@ from .regime import (
     analyze_regime_performance,
 )
 from .backtest import backtest_strategy, BacktestResult
+from .backtest_no_sl import backtest_strategy_no_sl
+from .backtest_dual_market import backtest_dual_market_open, analyze_dual_market_results
 from .strategies import STRATEGIES
+from .data_loader import add_market_open_prices
 
 
 def run_core_analysis(df: pd.DataFrame):
@@ -187,6 +190,118 @@ def run_backtests(df: pd.DataFrame):
     return results
 
 
+def run_dual_market_comparison(df: pd.DataFrame):
+    """
+    Compare single daily open strategy vs dual market open strategy.
+    
+    This function runs both strategies with the same parameters and compares
+    their performance metrics.
+    """
+    print("\n" + "=" * 80)
+    print("DUAL MARKET OPEN STRATEGY COMPARISON")
+    print("=" * 80)
+    
+    # Parameters matching live trading (10 pips TP, no SL, EOD exit)
+    tp_pips = 10.0
+    cost_per_trade = 2.0  # 2 pips per trade (spread + commission)
+    
+    # Prepare data with market open prices
+    print("\nPreparing data with market open prices...")
+    df_with_opens = add_market_open_prices(df.copy())
+    
+    # Run single daily open strategy (baseline)
+    print("\n" + "-" * 80)
+    print("BASELINE: Single Daily Open Strategy (22:00 UTC)")
+    print("-" * 80)
+    
+    single_signals = STRATEGIES['price_trend_sma20'](df_with_opens)
+    single_result = backtest_strategy_no_sl(
+        df_with_opens,
+        single_signals,
+        take_profit_pips=tp_pips,
+        cost_per_trade_pips=cost_per_trade,
+    )
+    
+    single_stats = single_result.get_summary_stats()
+    single_result.print_summary()
+    
+    # Run dual market open strategy
+    print("\n" + "-" * 80)
+    print("DUAL MARKET OPEN STRATEGY (EUR 8:00 UTC + US 13:00 UTC)")
+    print("-" * 80)
+    
+    dual_signals_df = STRATEGIES['dual_market_open'](df_with_opens)
+    dual_result = backtest_dual_market_open(
+        df_with_opens,
+        dual_signals_df,
+        take_profit_pips=tp_pips,
+        cost_per_trade_pips=cost_per_trade,
+    )
+    
+    dual_stats = analyze_dual_market_results(dual_result)
+    dual_result.print_summary()
+    
+    # Print session-specific metrics
+    print("\n" + "-" * 80)
+    print("Session-Specific Metrics:")
+    print("-" * 80)
+    print(f"EUR Market Trades: {dual_stats['eur_trades']}")
+    print(f"EUR Market Pips: {dual_stats['eur_pips']:.2f}")
+    print(f"EUR Market Win Rate: {dual_stats['eur_win_rate']:.2f}%")
+    print(f"\nUS Market Trades: {dual_stats['us_trades']}")
+    print(f"US Market Pips: {dual_stats['us_pips']:.2f}")
+    print(f"US Market Win Rate: {dual_stats['us_win_rate']:.2f}%")
+    print(f"\nDays with 2 trades: {dual_stats['days_with_2_trades']}")
+    print(f"Days with 1 trade: {dual_stats['days_with_1_trade']}")
+    print(f"Days with 0 trades: {dual_stats['days_with_0_trades']}")
+    
+    # Comparison table
+    print("\n" + "=" * 80)
+    print("STRATEGY COMPARISON")
+    print("=" * 80)
+    
+    comparison_data = []
+    comparison_data.append({
+        'Strategy': 'Single Daily Open',
+        'Total Pips': f"{single_stats['total_pips']:.2f}",
+        'Trades': single_stats['total_trades'],
+        'Win Rate %': f"{single_stats['win_rate']:.2f}",
+        'Avg Pips/Trade': f"{single_stats['avg_pips_per_trade']:.2f}",
+        'Profit Factor': f"{single_stats['profit_factor']:.2f}",
+        'Max DD (pips)': f"{single_stats['max_drawdown_pips']:.2f}",
+        'Sharpe': f"{single_stats['sharpe']:.2f}",
+    })
+    comparison_data.append({
+        'Strategy': 'Dual Market Open',
+        'Total Pips': f"{dual_stats['total_pips']:.2f}",
+        'Trades': dual_stats['total_trades'],
+        'Win Rate %': f"{dual_stats['win_rate']:.2f}",
+        'Avg Pips/Trade': f"{dual_stats['avg_pips_per_trade']:.2f}",
+        'Profit Factor': f"{dual_stats['profit_factor']:.2f}",
+        'Max DD (pips)': f"{dual_stats['max_drawdown_pips']:.2f}",
+        'Sharpe': f"{dual_stats['sharpe']:.2f}",
+    })
+    
+    comparison_df = pd.DataFrame(comparison_data)
+    print("\n" + comparison_df.to_string(index=False))
+    
+    # Calculate improvement
+    print("\n" + "-" * 80)
+    print("Performance Improvement:")
+    print("-" * 80)
+    pips_improvement = dual_stats['total_pips'] - single_stats['total_pips']
+    pips_improvement_pct = (pips_improvement / abs(single_stats['total_pips'])) * 100 if single_stats['total_pips'] != 0 else 0
+    print(f"Total Pips Improvement: {pips_improvement:+.2f} pips ({pips_improvement_pct:+.2f}%)")
+    print(f"Additional Trades: {dual_stats['total_trades'] - single_stats['total_trades']}")
+    
+    return {
+        'single': single_result,
+        'dual': dual_result,
+        'single_stats': single_stats,
+        'dual_stats': dual_stats,
+    }
+
+
 def main():
     """Main execution function."""
     print("FX Open-Range Lab")
@@ -209,6 +324,9 @@ def main():
     
     # Run backtests
     results = run_backtests(df)
+    
+    # Run dual market open comparison
+    comparison_results = run_dual_market_comparison(df)
     
     print("\n" + "=" * 80)
     print("ANALYSIS COMPLETE")

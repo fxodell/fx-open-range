@@ -11,6 +11,12 @@ import pandas as pd
 from app.config.settings import Settings
 from app.utils.oanda_client import OandaTradingClient
 from app.strategies.sma20_strategy import get_current_signal, prepare_data_for_strategy
+from app.strategies.dual_market_open_strategy import (
+    get_dual_market_signals,
+    check_eur_market_open,
+    check_us_market_open,
+    get_market_open_signal,
+)
 
 
 class TradingEngine:
@@ -30,6 +36,8 @@ class TradingEngine:
         self.logger = self._setup_logger()
         self.trades_today = 0
         self.last_trade_date = None
+        self.eur_trade_today = False
+        self.us_trade_today = False
     
     def _setup_logger(self) -> logging.Logger:
         """Setup logger."""
@@ -79,9 +87,23 @@ class TradingEngine:
         if self.last_trade_date != today:
             self.trades_today = 0
             self.last_trade_date = today
+            self.eur_trade_today = False
+            self.us_trade_today = False
             return False
         
-        return self.trades_today >= Settings.MAX_DAILY_TRADES
+        # For dual market open, check if we've hit the max trades
+        if Settings.DUAL_MARKET_OPEN_ENABLED:
+            return self.trades_today >= Settings.MAX_DAILY_TRADES
+        else:
+            return self.trades_today >= Settings.MAX_DAILY_TRADES
+    
+    def check_eur_market_open(self) -> bool:
+        """Check if current time is within EUR market open window."""
+        return check_eur_market_open()
+    
+    def check_us_market_open(self) -> bool:
+        """Check if current time is within US market open window."""
+        return check_us_market_open()
     
     def get_market_data(self, days: int = 30) -> pd.DataFrame:
         """Fetch market data for strategy analysis."""
@@ -224,34 +246,123 @@ class TradingEngine:
     def run_once(self):
         """Run trading logic once (check signal and execute if needed)."""
         try:
-            # Check trading hours
-            if not self.check_trading_hours():
-                self.logger.debug("Outside trading hours")
+            # Check if dual market open is enabled
+            if Settings.DUAL_MARKET_OPEN_ENABLED:
+                self._run_dual_market_open()
+            else:
+                self._run_single_daily_open()
+                
+        except Exception as e:
+            self.logger.error(f"Error in run_once: {e}", exc_info=True)
+    
+    def _run_single_daily_open(self):
+        """Run single daily open trading logic (original behavior)."""
+        # Check trading hours
+        if not self.check_trading_hours():
+            self.logger.debug("Outside trading hours")
+            return
+        
+        # Get signal
+        signal, price, sma, price_info = self.get_signal()
+        
+        if price_info is None:
+            self.logger.warning("Could not get price info - skipping")
+            return
+        
+        self.logger.info(f"Signal: {signal}, Price: {price:.5f}, SMA20: {sma:.5f if sma else 'N/A'}")
+        
+        # Check for existing positions
+        open_trades = self.check_open_positions()
+        if open_trades:
+            self.logger.debug(f"Monitoring {len(open_trades)} open position(s)")
+            return
+        
+        # Execute trade if signal is not flat
+        if signal != 'flat':
+            self.execute_trade(signal, price_info)
+        else:
+            self.logger.debug("No signal - staying flat")
+    
+    def _run_dual_market_open(self):
+        """Run dual market open trading logic."""
+        # Check for existing positions first
+        open_trades = self.check_open_positions()
+        
+        # Check EUR market open
+        if self.check_eur_market_open():
+            if not self.eur_trade_today and not open_trades:
+                self.logger.info("EUR market open detected (8:00 UTC)")
+                self._try_market_open_trade('eur')
+            elif open_trades:
+                self.logger.debug(f"EUR market open but {len(open_trades)} position(s) already open - skipping")
+        
+        # Check US market open (independent check)
+        if self.check_us_market_open():
+            if not self.us_trade_today:
+                # Only trade if no open position (EUR trade might still be open)
+                if not open_trades:
+                    self.logger.info("US market open detected (13:00 UTC)")
+                    self._try_market_open_trade('us')
+                else:
+                    self.logger.info("US market open detected but EUR trade still open - skipping")
+    
+    def _try_market_open_trade(self, market: str):
+        """
+        Try to execute a trade at a market open.
+        
+        Parameters:
+        -----------
+        market : str
+            'eur' or 'us'
+        """
+        try:
+            # Get market data
+            df = self.get_market_data()
+            
+            if len(df) < Settings.SMA_PERIOD:
+                self.logger.warning(f"Insufficient data: {len(df)} candles (need {Settings.SMA_PERIOD})")
                 return
             
-            # Get signal
-            signal, price, sma, price_info = self.get_signal()
+            # Prepare data
+            df = prepare_data_for_strategy(df, Settings.SMA_PERIOD)
             
-            if price_info is None:
-                self.logger.warning("Could not get price info - skipping")
+            # Get signal for this market
+            signal, price, sma = get_market_open_signal(df, market, Settings.SMA_PERIOD)
+            
+            # Get current market pricing
+            try:
+                price_info = self.client.get_current_price(self.instrument)
+            except Exception as e:
+                self.logger.warning(f"Could not get current pricing: {e}")
                 return
             
-            self.logger.info(f"Signal: {signal}, Price: {price:.5f}, SMA20: {sma:.5f if sma else 'N/A'}")
+            self.logger.info(f"{market.upper()} Market Open - Signal: {signal}, Price: {price:.5f}, SMA20: {sma:.5f if sma else 'N/A'}")
             
-            # Check for existing positions
+            # Check if we should trade
+            if self.has_traded_today():
+                self.logger.info(f"Already traded today ({self.trades_today} trades)")
+                return
+            
+            # Check for existing positions (double-check)
             open_trades = self.check_open_positions()
             if open_trades:
-                self.logger.debug(f"Monitoring {len(open_trades)} open position(s)")
+                self.logger.info(f"Already have {len(open_trades)} open position(s) - skipping")
                 return
             
             # Execute trade if signal is not flat
             if signal != 'flat':
-                self.execute_trade(signal, price_info)
+                result = self.execute_trade(signal, price_info)
+                if result:
+                    # Mark this market as traded
+                    if market == 'eur':
+                        self.eur_trade_today = True
+                    elif market == 'us':
+                        self.us_trade_today = True
             else:
-                self.logger.debug("No signal - staying flat")
+                self.logger.debug(f"No signal at {market.upper()} market open - staying flat")
                 
         except Exception as e:
-            self.logger.error(f"Error in run_once: {e}", exc_info=True)
+            self.logger.error(f"Error in _try_market_open_trade ({market}): {e}", exc_info=True)
     
     def run_continuous(self, check_interval_seconds: int = 60):
         """

@@ -1,6 +1,8 @@
 # Automated OANDA Trading Application
 
-Automated trading application that implements the **Price Trend (SMA20) Directional** strategy on OANDA.
+Automated trading application that implements **Price Trend (SMA20) Directional** strategies on OANDA:
+- **Single Daily Open Strategy**: Trades at 22:00 UTC (daily candle open)
+- **Dual Market Open Strategy**: Trades at EUR (8:00 UTC) and US (13:00 UTC) market opens (default, recommended)
 
 ## ⚠️ IMPORTANT WARNINGS
 
@@ -11,17 +13,41 @@ Automated trading application that implements the **Price Trend (SMA20) Directio
 
 ## Strategy Overview
 
+### Single Daily Open Strategy
+
 **Price Trend (SMA20) Directional Strategy:**
 - **BUY** when: Yesterday's Close > SMA20 (uptrend)
 - **SELL** when: Yesterday's Close < SMA20 (downtrend)
 - **Take Profit**: 10 pips
 - **Stop Loss**: None (EOD exit if TP not hit)
 - **Trades**: 1 trade per day maximum
+- **Entry**: 22:00 UTC (daily candle open)
 
-**Backtested Performance (5 years):**
-- Win Rate: 82.06%
-- Total Pips: +7,945.95 pips
-- Max Drawdown: 83.88 pips
+**Backtested Performance:**
+- 5 years: Win Rate 82.06%, +7,945.95 pips, 83.88 pips max drawdown
+- 12 months: +1,399 pips, 78% win rate, 240 trades
+
+### Dual Market Open Strategy (Default, Recommended)
+
+**Price Trend (SMA20) Directional - Dual Market:**
+- **Same signal logic** as single daily open
+- **EUR Market Open**: 8:00 UTC (London session)
+- **US Market Open**: 13:00 UTC (New York session)
+- **Take Profit**: 10 pips
+- **Stop Loss**: None (EOD exit if TP not hit)
+- **Trades**: Up to 2 trades per day (one per session, but only if first trade closed)
+- **Position Limit**: Only one position open at a time
+
+**12-Month Performance:**
+- Total Pips: +2,900 pips (vs +1,399 for single daily open)
+- Win Rate: 87.85% (vs 78.33% for single daily open)
+- Trades: 428 (vs 240 for single daily open)
+- **Improvement**: +107% more pips vs single daily open
+- **Session Breakdown**:
+  - EUR Market: +1,399 pips, 78% win rate, 240 trades
+  - US Market: +1,501 pips, 100% win rate, 188 trades
+
+**See:** [Dual Market Open Guide](../docs/DUAL_MARKET_OPEN_GUIDE.md) for setup instructions
 
 ## Installation
 
@@ -101,11 +127,16 @@ Edit `app/config/settings.py` to customize:
 - `STOP_LOSS_PIPS`: Stop loss in pips (default: None = EOD exit)
 - `POSITION_SIZE`: Position size in units (default: 1)
 - `SMA_PERIOD`: SMA period for strategy (default: 20)
-- `MAX_DAILY_TRADES`: Maximum trades per day (default: 1)
-- `TRADING_START_HOUR`: Start of trading day UTC (default: 0)
-- `TRADING_END_HOUR`: End of trading day UTC (default: 23)
+- `DUAL_MARKET_OPEN_ENABLED`: Enable dual market open trading (default: True)
+- `EUR_MARKET_OPEN_HOUR`: EUR market open hour UTC (default: 8)
+- `US_MARKET_OPEN_HOUR`: US market open hour UTC (default: 13)
+- `MAX_DAILY_TRADES`: Maximum trades per day (default: 2 when dual market enabled, 1 otherwise)
+- `TRADING_START_HOUR`: Start of trading day UTC (default: 22, used for single daily open)
+- `TRADING_END_HOUR`: End of trading day UTC (default: 23, used for single daily open)
 
 ## How It Works
+
+### Single Daily Open Mode (when DUAL_MARKET_OPEN_ENABLED = False)
 
 1. **Data Collection**: Fetches last 30 days of daily candles from OANDA
 2. **Signal Generation**: Calculates SMA20 and determines if price is above/below
@@ -120,6 +151,23 @@ Edit `app/config/settings.py` to customize:
 5. **Monitoring**: Continuously monitors open positions
 6. **EOD Exit**: Positions close at end of day if TP not hit (no stop loss)
 
+### Dual Market Open Mode (Default, when DUAL_MARKET_OPEN_ENABLED = True)
+
+1. **Data Collection**: Fetches last 30 days of daily candles from OANDA
+2. **EUR Market Open (8:00 UTC)**:
+   - Checks SMA20 signal
+   - If signal valid and no open position → Enters trade
+   - Monitors for 10 pip take-profit or end-of-day exit
+3. **US Market Open (13:00 UTC)**:
+   - Checks SMA20 signal
+   - **Only trades if no open position** (skips if EUR trade still open)
+   - If signal valid and no open position → Enters trade
+   - Monitors for 10 pip take-profit or end-of-day exit
+4. **Position Management**:
+   - Only one position open at a time
+   - Positions close at end-of-day (22:00 UTC) if TP not hit
+   - No stop loss (EOD exit handles risk)
+
 ## Logging
 
 Logs are saved to `logs/trading_YYYYMMDD.log` with:
@@ -131,10 +179,11 @@ Logs are saved to `logs/trading_YYYYMMDD.log` with:
 ## Safety Features
 
 1. **Practice Mode Default**: Prevents accidental live trading
-2. **Max Daily Trades**: Limits to 1 trade per day
-3. **Position Check**: Won't open new position if one already exists
-4. **Trading Hours**: Respects configured trading hours
+2. **Max Daily Trades**: Limits to 1 trade per day (single mode) or 2 trades per day (dual mode)
+3. **Position Check**: Won't open new position if one already exists (only one position at a time)
+4. **Trading Hours**: Respects configured trading hours or market open times
 5. **Error Handling**: Comprehensive error handling and logging
+6. **Session Tracking**: Tracks which session (EUR or US) opened each trade
 
 ## Example Output
 
@@ -154,7 +203,10 @@ Take Profit: 10.0 pips
 Stop Loss: EOD Exit
 Position Size: 1 units
 SMA Period: 20
-Max Daily Trades: 1
+Max Daily Trades: 2
+Dual Market Open: ENABLED
+EUR Market Open: 08:00 UTC
+US Market Open: 13:00 UTC
 ================================================================================
 ✓ Practice mode enabled (safe for testing)
 ⚠️  No stop loss set - trades will exit at end-of-day
@@ -169,9 +221,12 @@ Connecting to OANDA API...
 Starting continuous trading (check every 60 seconds)...
 Press Ctrl+C to stop
 
-2025-12-18 10:00:00 - TradingEngine - INFO - Signal: long, Price: 1.17250, SMA20: 1.17120
-2025-12-18 10:00:01 - TradingEngine - INFO - Placing long order: 1 units, TP=10.0 pips
-2025-12-18 10:00:02 - TradingEngine - INFO - Order placed successfully: {...}
+2025-12-18 08:00:00 - TradingEngine - INFO - EUR market open detected (8:00 UTC)
+2025-12-18 08:00:01 - TradingEngine - INFO - EUR Market Open - Signal: long, Price: 1.17250, SMA20: 1.17120
+2025-12-18 08:00:02 - TradingEngine - INFO - Placing long order: 1 units, TP=10.0 pips
+2025-12-18 08:00:03 - TradingEngine - INFO - Order placed successfully: {...}
+2025-12-18 13:00:00 - TradingEngine - INFO - US market open detected (13:00 UTC)
+2025-12-18 13:00:01 - TradingEngine - INFO - Already have 1 open position(s) - skipping
 ```
 
 ## Troubleshooting

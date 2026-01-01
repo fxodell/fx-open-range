@@ -2,16 +2,34 @@
 
 ## Current Behavior
 
-The application will execute trades **whenever it checks and finds a valid signal**, within the configured trading hours.
+The application supports two trading modes:
+
+### Dual Market Open Strategy (Default)
 
 **Default Settings:**
-- **Trading Hours**: 0-23 UTC (all day, 24 hours)
+- **Dual Market Open**: ENABLED
+- **EUR Market Open**: 8:00 UTC (London session)
+- **US Market Open**: 13:00 UTC (New York session, 8:00 AM EST)
+- **Check Interval**: 60 seconds (when running continuously)
+- **Max Daily Trades**: 2 per day (one per session, but only if first trade closed)
+
+**Behavior:**
+- Application checks every 60 seconds
+- At 8:00 UTC: Checks for EUR market open signal, trades if valid and no open position
+- At 13:00 UTC: Checks for US market open signal, trades if valid and **no open position**
+- If EUR trade still open at US open → Skips US trade
+- Up to 2 trades per day (one at EUR open, one at US open)
+
+### Single Daily Open Strategy
+
+**Settings (when DUAL_MARKET_OPEN_ENABLED = False):**
+- **Trading Hours**: 22:00-23:00 UTC (daily candle open window)
 - **Check Interval**: 60 seconds (when running continuously)
 - **Max Daily Trades**: 1 per day
 
-This means:
-- If you run `python -m app.main` (continuous mode), it checks every 60 seconds
-- If a valid signal exists and conditions are met, it trades immediately
+**Behavior:**
+- Application checks every 60 seconds
+- Trades only during 22:00-23:00 UTC window
 - Once it trades once, it won't trade again until the next day
 
 ## EUR/USD Daily Candle Schedule
@@ -133,18 +151,36 @@ tail -f logs/trading_$(date +%Y%m%d).log
 
 ## Recommended Configuration
 
-**Option 1** (22:00-23:00 UTC) is recommended for the **Price Trend (SMA20) Directional** strategy:
+### Dual Market Open Strategy (Recommended)
 
-1. Matches the backtested strategy (trades at open)
-2. Signal is based on completed daily candle
-3. Entry price matches backtest assumptions
-
-Configure in `app/config/settings.py`:
-
+**Default configuration** (already enabled):
 ```python
-TRADING_START_HOUR: int = 22
-TRADING_END_HOUR: int = 23
+DUAL_MARKET_OPEN_ENABLED: bool = True
+EUR_MARKET_OPEN_HOUR: int = 8  # 8:00 UTC
+US_MARKET_OPEN_HOUR: int = 13  # 13:00 UTC
+MAX_DAILY_TRADES: int = 2
 ```
 
-Then restart the application.
+**Why recommended:**
+- 12-month backtest shows +107% improvement over single daily open
+- Higher win rate (87.85% vs 78.33%)
+- More trading opportunities (428 vs 240 trades)
+- US session shows exceptional performance (100% win rate)
+
+### Single Daily Open Strategy
+
+**Configuration** (if you want to use single daily open):
+```python
+DUAL_MARKET_OPEN_ENABLED: bool = False
+TRADING_START_HOUR: int = 22  # 22:00 UTC
+TRADING_END_HOUR: int = 23    # 23:00 UTC
+MAX_DAILY_TRADES: int = 1
+```
+
+**Why use single daily open:**
+- Simpler setup (only one trading window)
+- Still profitable (+1,399 pips in 12 months)
+- Lower trade frequency (240 vs 428 trades)
+
+**See:** [Dual Market Open Guide](../docs/DUAL_MARKET_OPEN_GUIDE.md) for detailed setup instructions.
 

@@ -181,3 +181,44 @@ This document records architectural decisions made for the FX Open-Range Lab pro
   - Reduced flexibility (only 1-hour window per day)
   - Requires application to be running during window
   - May miss trades if application is down during window
+
+## ADR-012 - Dual Market Open Strategy Implementation
+- **Date**: 2025-01-XX
+- **Decision**: Implement dual market open strategy that trades at both EUR market open (8:00 UTC) and US market open (13:00 UTC) using the same SMA20 directional logic
+- **Why**: 
+  - 12-month backtest showed +107% improvement over single daily open strategy
+  - Provides more trading opportunities (up to 2 trades per day)
+  - US session showed exceptional performance (100% win rate, +1,501 pips from 188 trades)
+  - Reuses proven SMA20 logic, reducing complexity
+  - Only one position open at a time maintains risk control
+- **Alternatives considered**: 
+  - Different signal logic for EUR vs US opens
+  - Allowing multiple positions simultaneously
+  - Trading only at EUR or only at US open
+- **Consequences**: 
+  - Significantly improved performance metrics (+2,900 pips vs +1,399 pips in 12-month period)
+  - Higher win rate (87.85% vs 78.33%)
+  - More trades (428 vs 240), providing more opportunities
+  - Requires application to be running at both market open times (8:00 and 13:00 UTC)
+  - More complex position tracking and session management
+  - Market open price approximation needed for backtesting (uses daily open for EUR, interpolated for US)
+
+## ADR-013 - Market Open Price Approximation from Daily Data
+- **Date**: 2025-01-XX
+- **Decision**: Approximate market open prices from daily OHLC data for backtesting dual market open strategy
+- **Why**: 
+  - Daily OHLC data is readily available and simpler to work with
+  - Intraday data (H1, M15) not always available for historical backtesting
+  - Approximation provides reasonable estimates for strategy evaluation
+  - EUR open uses current day's open (price at 22:00 UTC previous day, which is when EUR opens at 8:00 UTC)
+  - US open interpolates between daily open and close (30% through day)
+- **Alternatives considered**: 
+  - Require intraday data (H1, M15) for all backtests
+  - Use previous day's close for EUR open (incorrect - tested and fixed)
+  - Use daily open for US open (less accurate)
+- **Consequences**: 
+  - Enables backtesting with commonly available daily data
+  - Approximation may introduce some inaccuracy
+  - For production use, intraday data recommended for more precise execution
+  - EUR open approximation (using daily open) proved accurate in testing
+  - US open approximation (30% interpolation) provides reasonable estimate

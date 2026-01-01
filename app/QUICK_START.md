@@ -50,23 +50,33 @@ POSITION_SIZE = 1  # Units (1 = micro lot)
 SMA_PERIOD = 20
 
 # Risk management
-MAX_DAILY_TRADES = 1
+MAX_DAILY_TRADES = 2  # 2 when dual market enabled, 1 otherwise
+
+# Dual market open (default: enabled)
+DUAL_MARKET_OPEN_ENABLED = True
+EUR_MARKET_OPEN_HOUR = 8  # 8:00 UTC
+US_MARKET_OPEN_HOUR = 13  # 13:00 UTC
 ```
 
 ## 📊 How It Works
 
+**Dual Market Open Strategy (Default):**
+
 1. **Fetches** last 30 days of EUR/USD daily candles
 2. **Calculates** SMA20 moving average
-3. **Determines** signal:
-   - **LONG** if Close > SMA20
-   - **SHORT** if Close < SMA20
-   - **FLAT** otherwise
-4. **Executes** trade if signal is valid:
-   - Checks if already traded today (max 1/day)
-   - Checks for open positions
-   - Places market order with 10 pip TP
+3. **EUR Market Open (8:00 UTC)**:
+   - Determines signal (LONG if Close > SMA20, SHORT if Close < SMA20)
+   - If signal valid and no open position → Executes trade
+4. **US Market Open (13:00 UTC)**:
+   - Determines signal (same logic)
+   - If signal valid and **no open position** → Executes trade
+   - Skips if EUR trade still open
 5. **Monitors** open positions
 6. **Exits** at end of day if TP not hit (no stop loss)
+
+**Single Daily Open Strategy** (when dual market disabled):
+- Trades once per day at 22:00 UTC (daily candle open)
+- Same signal logic, max 1 trade per day
 
 ## 🔍 Monitoring
 
@@ -86,10 +96,17 @@ MAX_DAILY_TRADES = 1
 
 ## 📈 Expected Behavior
 
-- **Trades once per day** (at most)
+**Dual Market Open (Default):**
+- **Trades at EUR open (8:00 UTC)** if signal valid
+- **Trades at US open (13:00 UTC)** if signal valid and no open position
+- **Up to 2 trades per day** (one per session, but only if first trade closed)
 - **Closes positions** at end of day if TP not hit
 - **No stop loss** (EOD exit handles risk)
 - **Only trades** when signal is clear (long/short)
+
+**Single Daily Open:**
+- **Trades once per day** at 22:00 UTC (at most)
+- Same exit and risk management as dual market
 
 ## 🐛 Troubleshooting
 
