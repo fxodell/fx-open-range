@@ -10,6 +10,7 @@ import pandas as pd
 
 from app.config.settings import Settings
 from app.utils.oanda_client import OandaTradingClient
+from app.utils.metrics import get_metrics
 from app.strategies.sma20_strategy import get_current_signal, prepare_data_for_strategy
 from app.strategies.dual_market_open_strategy import (
     get_dual_market_signals,
@@ -38,6 +39,7 @@ class TradingEngine:
         self.last_trade_date = None
         self.eur_trade_today = False
         self.us_trade_today = False
+        self.metrics = get_metrics()
     
     def _setup_logger(self) -> logging.Logger:
         """Setup logger."""
@@ -110,14 +112,22 @@ class TradingEngine:
         end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(days=days)
         
-        df = self.client.fetch_candles(
-            instrument=self.instrument,
-            granularity="D",
-            from_time=start_time,
-            to_time=end_time
-        )
-        
-        return df
+        import time
+        start_time_api = time.time()
+        try:
+            df = self.client.fetch_candles(
+                instrument=self.instrument,
+                granularity="D",
+                from_time=start_time,
+                to_time=end_time
+            )
+            duration = time.time() - start_time_api
+            self.metrics.record_api_call(duration_seconds=duration, error=False)
+            return df
+        except Exception as e:
+            duration = time.time() - start_time_api
+            self.metrics.record_api_call(duration_seconds=duration, error=True)
+            raise
     
     def get_signal(self) -> Tuple[str, Optional[float], Optional[float], Optional[Dict]]:
         """
@@ -146,9 +156,15 @@ class TradingEngine:
             signal, price, sma = get_current_signal(df, Settings.SMA_PERIOD)
             
             # Get current market pricing
+            import time
+            start_time_api = time.time()
             try:
                 price_info = self.client.get_current_price(self.instrument)
+                duration = time.time() - start_time_api
+                self.metrics.record_api_call(duration_seconds=duration, error=False)
             except Exception as e:
+                duration = time.time() - start_time_api
+                self.metrics.record_api_call(duration_seconds=duration, error=True)
                 self.logger.warning(f"Could not get current pricing: {e}")
                 price_info = None
             
@@ -168,7 +184,7 @@ class TradingEngine:
             self.logger.error(f"Error checking open positions: {e}")
             return []
     
-    def close_eod_positions(self):
+    def close_eod_positions(self) -> None:
         """Close all open positions at end of day (EOD exit strategy)."""
         open_trades = self.check_open_positions()
         
@@ -222,6 +238,13 @@ class TradingEngine:
         else:
             return None
         
+        # Safety check: validate position size
+        if Settings.MAX_POSITION_SIZE and abs(units) > Settings.MAX_POSITION_SIZE:
+            self.logger.warning(
+                f"Position size {abs(units)} exceeds maximum {Settings.MAX_POSITION_SIZE} - rejecting trade"
+            )
+            return None
+        
         # Place order
         try:
             self.logger.info(f"Placing {signal} order: {units} units, TP={Settings.TAKE_PROFIT_PIPS} pips")
@@ -237,13 +260,18 @@ class TradingEngine:
             self.trades_today += 1
             self.last_trade_date = datetime.now(timezone.utc).date()
             
+            # Record metrics
+            self.metrics.record_trade(success=True, pips=None)  # Pips will be known later
+            
             return order_result
             
         except Exception as e:
             self.logger.error(f"Error placing order: {e}", exc_info=True)
+            # Record failed trade
+            self.metrics.record_trade(success=False, pips=None)
             return None
     
-    def run_once(self):
+    def run_once(self) -> None:
         """Run trading logic once (check signal and execute if needed)."""
         try:
             # Check if dual market open is enabled
@@ -255,7 +283,7 @@ class TradingEngine:
         except Exception as e:
             self.logger.error(f"Error in run_once: {e}", exc_info=True)
     
-    def _run_single_daily_open(self):
+    def _run_single_daily_open(self) -> None:
         """Run single daily open trading logic (original behavior)."""
         # Check trading hours
         if not self.check_trading_hours():
@@ -269,7 +297,10 @@ class TradingEngine:
             self.logger.warning("Could not get price info - skipping")
             return
         
-        self.logger.info(f"Signal: {signal}, Price: {price:.5f}, SMA20: {sma:.5f if sma else 'N/A'}")
+        # Format price and SMA safely (handle None values)
+        price_str = f"{price:.5f}" if price is not None else "N/A"
+        sma_str = f"{sma:.5f}" if sma is not None else "N/A"
+        self.logger.info(f"Signal: {signal}, Price: {price_str}, SMA20: {sma_str}")
         
         # Check for existing positions
         open_trades = self.check_open_positions()
@@ -283,7 +314,7 @@ class TradingEngine:
         else:
             self.logger.debug("No signal - staying flat")
     
-    def _run_dual_market_open(self):
+    def _run_dual_market_open(self) -> None:
         """Run dual market open trading logic."""
         # Check for existing positions first
         open_trades = self.check_open_positions()
@@ -306,7 +337,7 @@ class TradingEngine:
                 else:
                     self.logger.info("US market open detected but EUR trade still open - skipping")
     
-    def _try_market_open_trade(self, market: str):
+    def _try_market_open_trade(self, market: str) -> None:
         """
         Try to execute a trade at a market open.
         
@@ -336,7 +367,10 @@ class TradingEngine:
                 self.logger.warning(f"Could not get current pricing: {e}")
                 return
             
-            self.logger.info(f"{market.upper()} Market Open - Signal: {signal}, Price: {price:.5f}, SMA20: {sma:.5f if sma else 'N/A'}")
+            # Format price and SMA safely (handle None values)
+            price_str = f"{price:.5f}" if price is not None else "N/A"
+            sma_str = f"{sma:.5f}" if sma is not None else "N/A"
+            self.logger.info(f"{market.upper()} Market Open - Signal: {signal}, Price: {price_str}, SMA20: {sma_str}")
             
             # Check if we should trade
             if self.has_traded_today():
@@ -364,7 +398,7 @@ class TradingEngine:
         except Exception as e:
             self.logger.error(f"Error in _try_market_open_trade ({market}): {e}", exc_info=True)
     
-    def run_continuous(self, check_interval_seconds: int = 60):
+    def run_continuous(self, check_interval_seconds: int = 60) -> None:
         """
         Run trading engine continuously.
         

@@ -6,9 +6,16 @@ import os
 import requests
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from pathlib import Path
+import sys
+
+# Add parent directory to path for imports
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from app.utils.retry import retry_with_backoff
 
 
 class OandaAPI:
@@ -73,6 +80,7 @@ class OandaAPI:
         
         return response.json()['account']
     
+    @retry_with_backoff(max_retries=3, initial_delay=1.0, backoff_factor=2.0)
     def fetch_candles(self,
                      instrument: str = "EUR_USD",
                      granularity: str = "D",  # D = daily, H4 = 4 hours, etc.
@@ -111,12 +119,26 @@ class OandaAPI:
         if count:
             params["count"] = min(count, 5000)  # OANDA max is 5000
         elif from_time:
-            params["from"] = from_time.isoformat() + "Z"
+            # OANDA API expects RFC3339 format: YYYY-MM-DDTHH:MM:SS.000000Z
+            # Ensure timezone-aware UTC and format correctly
+            if from_time.tzinfo is None:
+                from_time = from_time.replace(tzinfo=timezone.utc)
+            else:
+                from_time = from_time.astimezone(timezone.utc)
+            # Format: use microseconds (6 digits) and Z suffix
+            params["from"] = from_time.strftime("%Y-%m-%dT%H:%M:%S.000000Z")
         else:
             raise ValueError("Must provide either 'count' or 'from_time'")
         
         if to_time:
-            params["to"] = to_time.isoformat() + "Z"
+            # OANDA API expects RFC3339 format: YYYY-MM-DDTHH:MM:SS.000000Z
+            # Ensure timezone-aware UTC and format correctly
+            if to_time.tzinfo is None:
+                to_time = to_time.replace(tzinfo=timezone.utc)
+            else:
+                to_time = to_time.astimezone(timezone.utc)
+            # Format: use microseconds (6 digits) and Z suffix
+            params["to"] = to_time.strftime("%Y-%m-%dT%H:%M:%S.000000Z")
         
         response = requests.get(url, headers=self.headers, params=params)
         response.raise_for_status()
