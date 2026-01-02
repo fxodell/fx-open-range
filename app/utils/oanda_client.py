@@ -4,9 +4,10 @@ OANDA API client for trading operations.
 
 import requests
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, List
 import time
+from app.utils.retry import retry_with_backoff
 
 
 class OandaTradingClient:
@@ -102,6 +103,7 @@ class OandaTradingClient:
             'time': price_info['time']
         }
     
+    @retry_with_backoff(max_retries=3, initial_delay=1.0, backoff_factor=2.0)
     def fetch_candles(self,
                      instrument: str,
                      granularity: str = "D",
@@ -138,12 +140,28 @@ class OandaTradingClient:
         if count:
             params["count"] = min(count, 5000)
         elif from_time:
-            params["from"] = from_time.isoformat() + "Z"
+            # OANDA API expects RFC3339 format: YYYY-MM-DDTHH:MM:SS.000000Z
+            # Ensure timezone-aware UTC and format correctly
+            if from_time.tzinfo is None:
+                from_time = from_time.replace(tzinfo=timezone.utc)
+            else:
+                from_time = from_time.astimezone(timezone.utc)
+            # Strip microseconds and format: OANDA prefers simple format without microseconds
+            from_time = from_time.replace(microsecond=0)
+            params["from"] = from_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         else:
             raise ValueError("Must provide either 'count' or 'from_time'")
         
         if to_time:
-            params["to"] = to_time.isoformat() + "Z"
+            # OANDA API expects RFC3339 format: YYYY-MM-DDTHH:MM:SS.000000Z
+            # Ensure timezone-aware UTC and format correctly
+            if to_time.tzinfo is None:
+                to_time = to_time.replace(tzinfo=timezone.utc)
+            else:
+                to_time = to_time.astimezone(timezone.utc)
+            # Strip microseconds and format: OANDA prefers simple format without microseconds
+            to_time = to_time.replace(microsecond=0)
+            params["to"] = to_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         
         response = requests.get(url, headers=self.headers, params=params)
         response.raise_for_status()
@@ -170,6 +188,7 @@ class OandaTradingClient:
         
         return df
     
+    @retry_with_backoff(max_retries=2, initial_delay=0.5, backoff_factor=2.0)
     def place_market_order(self,
                           instrument: str,
                           units: int,
