@@ -18,6 +18,7 @@
   - Single Daily Open Strategy (still available, can be enabled by setting `DUAL_MARKET_OPEN_ENABLED = False`)
   - Market regime detection (bull/bear/chop)
   - OANDA API integration with full trading operations (practice and live modes)
+  - Fixed OANDA API datetime formatting to prevent 400 Bad Request errors (RFC3339 format with microseconds stripped)
   - Historical data analysis and range calculations
   - Comprehensive CLI interface with multiple commands (`--once`, `--status`, `--close-all`, `--mode`, `--interval`)
   - Daily logging system with file (DEBUG) and console (INFO) handlers (`logs/trading_YYYYMMDD.log`)
@@ -156,7 +157,7 @@
 - **Trading Hours**: 
   - **Dual mode (default)**: 8:00 UTC (EUR) and 13:00 UTC (US) market opens
   - **Single mode**: 22:00-23:00 UTC (daily open window)
-- **Position Sizing**: 1 unit (micro lot) by default
+- **Position Sizing**: 1,000 units (1 mini lot = $1 per pip for EUR/USD) by default
 - **Risk Management**: 
   - Single mode: Max 1 trade per day
   - Dual mode: Max 2 trades per day (one per session, but only if first trade closed)
@@ -178,6 +179,8 @@
 - **API rate limits** from OANDA must be respected
 
 ## Changelog (newest first)
+- 2026-01-02: Updated position size from 1 unit (micro lot) to 1,000 units (mini lot = $1 per pip)
+- 2026-01-02: Fixed OANDA API datetime formatting issue (400 Bad Request errors) - now uses RFC3339 format with microseconds stripped
 - 2026-01-01: Updated CONTEXT.md and documentation to reflect current codebase state
 - 2025-01-XX: Dual Market Open Strategy set as default (DUAL_MARKET_OPEN_ENABLED = True)
 - 2025-01-XX: Implemented Dual Market Open Strategy with 12-month backtest showing +107% improvement

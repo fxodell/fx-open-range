@@ -222,3 +222,42 @@ This document records architectural decisions made for the FX Open-Range Lab pro
   - For production use, intraday data recommended for more precise execution
   - EUR open approximation (using daily open) proved accurate in testing
   - US open approximation (30% interpolation) provides reasonable estimate
+
+## ADR-014 - Position Sizing: Mini Lot (1,000 units)
+- **Date**: 2026-01-02
+- **Decision**: Set default position size to 1,000 units (1 mini lot) for EUR/USD trading, providing $1 per pip profit/loss
+- **Why**: 
+  - More realistic position sizing for practice and live trading
+  - 1 unit (micro lot) produces negligible profits ($0.0001 per pip), making it difficult to track performance
+  - 1,000 units provides meaningful profit/loss while remaining conservative for practice accounts
+  - Standard retail trading size that balances risk and reward
+- **Alternatives considered**: 
+  - Keep 1 unit (micro lot) for minimal risk
+  - Use 10,000 units (1 standard lot = $10 per pip) for larger profits
+  - Dynamic position sizing based on account balance
+- **Consequences**: 
+  - More meaningful profit/loss tracking ($1 per pip vs $0.0001 per pip)
+  - With 10 pip take profit, each winning trade generates ~$10 profit (vs ~$0.01 previously)
+  - Higher risk per trade (1,000 units vs 1 unit), but still manageable for practice accounts
+  - Drawdown of 8.6 pips would result in ~$8.60 unrealized loss (vs ~$0.00086 previously)
+  - Easier to monitor and evaluate strategy performance
+  - Configurable in `app/config/settings.py` via `POSITION_SIZE` parameter
+
+## ADR-015 - OANDA API Datetime Formatting Fix
+- **Date**: 2026-01-02
+- **Decision**: Fix datetime formatting in OANDA API client to use RFC3339 format (`YYYY-MM-DDTHH:MM:SSZ`) with microseconds stripped before formatting
+- **Why**: 
+  - OANDA API was returning 400 Bad Request errors when datetime objects contained microseconds
+  - Original format (`isoformat() + "Z"`) could produce invalid formats like `2025-12-03T08:58:00.918366+00:00Z`
+  - OANDA API requires clean RFC3339 format without microseconds or timezone offsets when using Z suffix
+  - Stripping microseconds ensures consistent, API-compatible datetime formatting
+- **Alternatives considered**: 
+  - Keep microseconds and use different format string
+  - Use timezone offset format instead of Z suffix
+  - Round microseconds instead of stripping
+- **Consequences**: 
+  - Eliminates 400 Bad Request errors when fetching candles with `from_time`/`to_time` parameters
+  - More reliable API calls for market data fetching
+  - Consistent datetime handling across all OANDA API requests
+  - Slight precision loss (microseconds removed), but acceptable for trading operations
+  - Applied to both `from_time` and `to_time` parameters in `fetch_candles()` method

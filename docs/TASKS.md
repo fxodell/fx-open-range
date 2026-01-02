@@ -61,6 +61,8 @@ This document tracks current tasks, improvements, and future work for the FX Ope
 
 ## Completed Tasks
 
+- [x] Fixed OANDA API datetime formatting to prevent 400 Bad Request errors (RFC3339 format)
+- [x] Updated position sizing from 1 unit (micro lot) to 1,000 units (mini lot = $1 per pip)
 - [x] Dual Market Open Strategy implementation (EUR 8:00 UTC + US 13:00 UTC)
 - [x] Dual market open backtesting engine with session-specific analysis
 - [x] 12-month backtest comparison showing +107% improvement over single daily open

@@ -23,7 +23,7 @@ class Settings:
     INSTRUMENT: str = "EUR_USD"
     TAKE_PROFIT_PIPS: float = 10.0
     STOP_LOSS_PIPS: Optional[float] = None  # None = EOD exit (no stop loss)
-    POSITION_SIZE: int = 1  # Units (micro lots = 1000 units)
+    POSITION_SIZE: int = 1000  # Units (1 mini lot = $1 per pip for EUR/USD)
     SPREAD_COST_PIPS: float = 2.0  # Estimated spread cost
     
     # Strategy Configuration (Price Trend SMA20)
@@ -45,6 +45,7 @@ class Settings:
     MAX_DAILY_TRADES: int = 2  # Allow 2 trades per day (one per session) when dual market enabled
     MAX_DAILY_LOSS_PIPS: Optional[float] = None  # Optional: stop trading after X pips loss
     MAX_DRAWDOWN_PIPS: Optional[float] = None  # Optional: stop trading after X pips drawdown
+    MAX_POSITION_SIZE: Optional[int] = None  # Optional: maximum position size in units
     
     # Logging
     LOG_DIR: Path = Path(__file__).parent.parent.parent / "logs"
