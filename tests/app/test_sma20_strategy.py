@@ -137,3 +137,4 @@ class TestSMA20Strategy:
             non_flat_signals = (signals != 'flat').sum()
             assert non_flat_signals > 0  # Should have some trading signals
 
+

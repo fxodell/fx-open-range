@@ -43,3 +43,4 @@ Implement a simple metrics tracking system that logs key metrics periodically. U
 2. **Database Storage**: Persistent but adds complexity
 3. **Simple In-Memory (Chosen)**: Good starting point, can upgrade later
 
+

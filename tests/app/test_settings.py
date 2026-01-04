@@ -105,3 +105,4 @@ class TestSettings:
         assert hasattr(Settings.DATA_DIR, 'parent')
         assert Settings.DATA_DIR.name == "data"
 
+

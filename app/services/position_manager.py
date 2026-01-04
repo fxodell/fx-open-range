@@ -107,3 +107,4 @@ class PositionManager:
         """
         return len(self.get_open_positions())
 
+

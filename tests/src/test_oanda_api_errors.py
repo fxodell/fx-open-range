@@ -157,3 +157,4 @@ class TestOandaAPIErrors:
             with pytest.raises(requests.exceptions.HTTPError):
                 client.fetch_daily_data("EUR_USD", days=30)
 
+

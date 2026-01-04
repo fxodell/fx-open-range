@@ -283,3 +283,4 @@ class TestOandaClientErrors:
         with pytest.raises(requests.exceptions.HTTPError):
             mock_oanda_client.get_open_positions()
 
+

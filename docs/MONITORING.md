@@ -136,3 +136,4 @@ Monitor:
 3. Check signal generation logic
 4. Review daily trade limits
 
+

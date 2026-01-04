@@ -91,3 +91,4 @@ class MarketDataService:
         df = self.fetch_market_data(days)
         return self.prepare_data_for_strategy(df, sma_period)
 
+

@@ -75,3 +75,4 @@ class SignalService:
         sma_period = sma_period or Settings.SMA_PERIOD
         return get_market_open_signal(df, market, sma_period)
 
+

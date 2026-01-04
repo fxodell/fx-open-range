@@ -171,3 +171,4 @@ class TestBacktestWorkflow:
             assert 'exit_reason' in result.trades.columns
             assert 'tp_hit' in result.trades.columns
 
+

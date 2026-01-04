@@ -198,3 +198,4 @@ python -m app.main --close-all
 - ✅ Command guides created
 - ✅ Ready for trading
 
+

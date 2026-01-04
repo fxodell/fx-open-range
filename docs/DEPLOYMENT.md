@@ -110,3 +110,4 @@ docker run -d --env-file .env trading-app
 - Backup logs directory
 - Document current positions before major updates
 
+

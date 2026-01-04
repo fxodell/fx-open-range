@@ -357,3 +357,4 @@ def mock_settings(monkeypatch):
     for key, value in original_values.items():
         monkeypatch.setattr(settings_module.Settings, key, value)
 
+

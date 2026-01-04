@@ -106,3 +106,4 @@ class TestRegime:
         for col in required_cols:
             assert col in result_df.columns
 
+
