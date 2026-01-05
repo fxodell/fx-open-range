@@ -76,3 +76,4 @@ class SignalService:
         return get_market_open_signal(df, market, sma_period)
 
 
+

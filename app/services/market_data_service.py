@@ -3,7 +3,6 @@ Market Data Service - Handles fetching and preparing market data.
 """
 
 import pandas as pd
-from datetime import datetime, timezone, timedelta
 from typing import Optional
 from app.utils.oanda_client import OandaTradingClient
 from app.strategies.sma20_strategy import prepare_data_for_strategy
@@ -29,26 +28,31 @@ class MarketDataService:
     
     def fetch_market_data(self, days: int = 30) -> pd.DataFrame:
         """
-        Fetch market data for specified number of days.
+        Fetch market data using count-based fetching for reliability.
+        
+        Uses count-based fetching (more reliable than date-based) with a buffer
+        to ensure we get enough complete candles for indicator calculations.
         
         Parameters:
         -----------
         days : int
-            Number of days of data to fetch
+            Number of days (deprecated - kept for compatibility).
+            Actual count is calculated based on SMA_PERIOD with buffer.
             
         Returns:
         --------
         pd.DataFrame
             DataFrame with Date, Open, High, Low, Close columns
         """
-        end_time = datetime.now(timezone.utc)
-        start_time = end_time - timedelta(days=days)
+        # Use count-based fetching with buffer: request 50% more candles than needed
+        # This ensures we have enough complete candles even after filtering incomplete ones
+        # For SMA20, request 30 candles to ensure we get at least 20 complete ones
+        requested_count = int(Settings.SMA_PERIOD * 1.5)  # 50% buffer
         
         df = self.client.fetch_candles(
             instrument=self.instrument,
             granularity="D",
-            from_time=start_time,
-            to_time=end_time
+            count=requested_count  # Use count instead of date range for reliability
         )
         
         return df
@@ -90,5 +94,6 @@ class MarketDataService:
         """
         df = self.fetch_market_data(days)
         return self.prepare_data_for_strategy(df, sma_period)
+
 
 

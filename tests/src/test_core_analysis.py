@@ -173,3 +173,4 @@ class TestCoreAnalysis:
             assert abs(mae.loc[idx] - expected_mae) < 0.01
 
 
+

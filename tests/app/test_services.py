@@ -192,3 +192,4 @@ class TestPositionManager:
         assert manager.get_position_count() == 2
 
 
+

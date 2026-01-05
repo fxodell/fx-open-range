@@ -106,3 +106,4 @@ class TestSettings:
         assert Settings.DATA_DIR.name == "data"
 
 
+

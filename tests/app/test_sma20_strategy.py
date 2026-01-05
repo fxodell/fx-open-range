@@ -138,3 +138,4 @@ class TestSMA20Strategy:
             assert non_flat_signals > 0  # Should have some trading signals
 
 
+

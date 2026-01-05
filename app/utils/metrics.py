@@ -145,3 +145,4 @@ def get_metrics() -> TradingMetrics:
     return _metrics_instance
 
 
+

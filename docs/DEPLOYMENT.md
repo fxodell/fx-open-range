@@ -111,3 +111,4 @@ docker run -d --env-file .env trading-app
 - Document current positions before major updates
 
 
+

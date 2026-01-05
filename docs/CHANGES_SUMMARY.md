@@ -199,3 +199,4 @@ python -m app.main --close-all
 - ✅ Ready for trading
 
 
+

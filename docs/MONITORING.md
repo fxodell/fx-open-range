@@ -137,3 +137,4 @@ Monitor:
 4. Review daily trade limits
 
 
+

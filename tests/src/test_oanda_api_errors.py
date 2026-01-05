@@ -158,3 +158,4 @@ class TestOandaAPIErrors:
                 client.fetch_daily_data("EUR_USD", days=30)
 
 
+
