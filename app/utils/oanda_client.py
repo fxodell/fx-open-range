@@ -216,7 +216,13 @@ class OandaTradingClient:
         
         # Get current price to calculate TP/SL prices
         price_info = self.get_current_price(instrument)
-        mid_price = price_info['mid']
+        
+        # CRITICAL FIX: Use the actual fill price, not mid price
+        # Long positions fill at ASK price, Short positions fill at BID price
+        if units > 0:  # Long position - will fill at ASK
+            fill_price = price_info['ask']
+        else:  # Short position - will fill at BID
+            fill_price = price_info['bid']
         
         # Calculate pip value (for EUR/USD, 1 pip = 0.0001)
         pip_value = 0.0001
@@ -229,24 +235,24 @@ class OandaTradingClient:
             }
         }
         
-        # Add take profit
+        # Add take profit - calculated from actual fill price
         if take_profit_pips:
             if units > 0:  # Long position
-                tp_price = mid_price + (take_profit_pips * pip_value)
+                tp_price = fill_price + (take_profit_pips * pip_value)
             else:  # Short position
-                tp_price = mid_price - (take_profit_pips * pip_value)
+                tp_price = fill_price - (take_profit_pips * pip_value)
             
             order_data["order"]["takeProfitOnFill"] = {
                 "price": str(round(tp_price, 5)),
                 "timeInForce": "GTC"
             }
         
-        # Add stop loss
+        # Add stop loss - also calculated from actual fill price
         if stop_loss_pips:
             if units > 0:  # Long position
-                sl_price = mid_price - (stop_loss_pips * pip_value)
+                sl_price = fill_price - (stop_loss_pips * pip_value)
             else:  # Short position
-                sl_price = mid_price + (stop_loss_pips * pip_value)
+                sl_price = fill_price + (stop_loss_pips * pip_value)
             
             order_data["order"]["stopLossOnFill"] = {
                 "price": str(round(sl_price, 5)),
