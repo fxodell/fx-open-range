@@ -8,6 +8,11 @@ strategy and the dual market open strategy.
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
+import sys
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from src.data_loader import load_eurusd_data, add_market_open_prices
 from src.backtest_no_sl import backtest_strategy_no_sl
@@ -22,7 +27,7 @@ def run_12month_backtest():
     print("=" * 80)
     
     # Load data from long-term file
-    data_file = Path(__file__).parent / "data" / "eur_usd_long_term.csv"
+    data_file = project_root / "data" / "eur_usd_long_term.csv"
     print(f"\nLoading data from: {data_file}")
     
     df = load_eurusd_data(str(data_file))

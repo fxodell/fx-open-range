@@ -249,6 +249,13 @@ class TradingEngine:
             if not open_trades:
                 self.logger.info(f"  No open positions ({self.instrument})")
             else:
+                # Get account currency for P/L display
+                try:
+                    account_summary = self.client.get_account_summary()
+                    currency = account_summary.get('currency', 'USD')
+                except Exception:
+                    currency = 'USD'  # Fallback to USD if we can't fetch account info
+                
                 self.logger.info(f"  Open Positions: {len(open_trades)} trade(s)")
                 total_units = 0
                 for i, trade in enumerate(open_trades, 1):
@@ -261,7 +268,7 @@ class TradingEngine:
                     direction = "LONG" if units > 0 else "SHORT"
                     self.logger.info(
                         f"    Trade {i}: ID={trade_id}, {direction} {abs(units)} units, "
-                        f"Entry Price={price:.5f}, Unrealized P/L={unrealized_pl:.2f} {trade.get('financing', 'USD')}"
+                        f"Entry Price={price:.5f}, Unrealized P/L={unrealized_pl:.2f} {currency}"
                     )
                 
                 self.logger.info(f"  Total Position: {total_units} units ({'LONG' if total_units > 0 else 'SHORT' if total_units < 0 else 'FLAT'})")
@@ -470,11 +477,13 @@ class TradingEngine:
             if self.eur_trade_today:
                 self.logger.info("EUR market already traded today - skipping")
             elif open_trades:
-                self.logger.warning(
+                # Note: Same-direction logic is handled in _try_market_open_trade
+                # This is just a status check - actual decision happens in _try_market_open_trade
+                self.logger.info(
                     f"EUR market open but {len(open_trades)} position(s) already open - "
-                    f"SAFEGUARD: Skipping EUR trade to prevent position overlap"
+                    f"will check if same direction in trade evaluation"
                 )
-                self.logger.info("  This can happen if a previous trade is still open or if trades closed and reopened")
+                self._try_market_open_trade('eur')
             else:
                 self.logger.info("EUR market open detected (8:00 UTC) - No open positions, proceeding with trade evaluation")
                 self._try_market_open_trade('eur')
@@ -488,20 +497,13 @@ class TradingEngine:
             if self.us_trade_today:
                 self.logger.info("US market already traded today - skipping")
             elif open_trades:
-                self.logger.warning(
+                # Note: Same-direction logic is handled in _try_market_open_trade
+                # This is just a status check - actual decision happens in _try_market_open_trade
+                self.logger.info(
                     f"US market open but {len(open_trades)} position(s) already open - "
-                    f"SAFEGUARD: Skipping US trade to prevent position overlap"
+                    f"will check if same direction in trade evaluation"
                 )
-                self.logger.info("  This typically means the EUR trade (from 8:00 UTC) is still open")
-                # Log details of open trades for debugging
-                for trade in open_trades:
-                    units = int(trade.get('currentUnits', 0))
-                    trade_id = trade.get('id', 'N/A')
-                    price = float(trade.get('price', 0))
-                    direction = "LONG" if units > 0 else "SHORT"
-                    self.logger.info(
-                        f"  Open trade: ID={trade_id}, {direction} {abs(units)} units, Entry={price:.5f}"
-                    )
+                self._try_market_open_trade('us')
             else:
                 self.logger.info("US market open detected (13:00 UTC) - No open positions, proceeding with trade evaluation")
                 self._try_market_open_trade('us')
@@ -561,23 +563,46 @@ class TradingEngine:
             # This is the last check before we execute - must pass to proceed
             open_trades = self.check_open_positions()
             if open_trades:
-                self.logger.warning(
-                    f"🚫 SAFEGUARD TRIGGERED: {len(open_trades)} position(s) detected before {market.upper()} trade execution - "
-                    f"ABORTING to prevent position overlap"
-                )
-                self.log_position_status(f"Pre-Execution Check ({market.upper()} Market)")
+                # Check if new signal is in same direction as existing position
+                existing_trade = open_trades[0]
+                existing_units = int(existing_trade.get('currentUnits', 0))
+                existing_direction = 'long' if existing_units > 0 else 'short'
+                trade_id = existing_trade.get('id', 'N/A')
+                entry_price = float(existing_trade.get('price', 0))
                 
-                # Log detailed info about why we're blocking
-                for trade in open_trades:
-                    trade_id = trade.get('id', 'N/A')
-                    units = int(trade.get('currentUnits', 0))
-                    entry_price = float(trade.get('price', 0))
-                    direction = "LONG" if units > 0 else "SHORT"
-                    self.logger.warning(
-                        f"  Blocking trade due to existing: Trade ID={trade_id}, "
-                        f"{direction} {abs(units)} units at {entry_price:.5f}"
+                # If signal is same direction, keep existing position (save spread costs)
+                if signal != 'flat' and signal == existing_direction:
+                    self.logger.info(
+                        f"✓ Same direction signal ({signal.upper()}) with existing {existing_direction.upper()} position - "
+                        f"keeping existing position to save spread costs (4 pips saved: 2 close + 2 open)"
                     )
-                return
+                    self.logger.info(
+                        f"  Existing position: Trade ID={trade_id}, {existing_direction.upper()} {abs(existing_units)} units, "
+                        f"Entry={entry_price:.5f}"
+                    )
+                    self.logger.info(
+                        f"  New {market.upper()} signal: {signal.upper()} - Position already aligned, no action needed"
+                    )
+                    return
+                else:
+                    # Different direction or flat signal - block to prevent conflict
+                    self.logger.warning(
+                        f"🚫 SAFEGUARD TRIGGERED: {len(open_trades)} position(s) detected before {market.upper()} trade execution - "
+                        f"ABORTING to prevent position overlap"
+                    )
+                    self.log_position_status(f"Pre-Execution Check ({market.upper()} Market)")
+                    
+                    # Log detailed info about why we're blocking
+                    for trade in open_trades:
+                        trade_id = trade.get('id', 'N/A')
+                        units = int(trade.get('currentUnits', 0))
+                        entry_price = float(trade.get('price', 0))
+                        direction = "LONG" if units > 0 else "SHORT"
+                        self.logger.warning(
+                            f"  Blocking trade due to existing: Trade ID={trade_id}, "
+                            f"{direction} {abs(units)} units at {entry_price:.5f}"
+                        )
+                    return
             
             # Additional defensive log when no positions found
             self.logger.debug(

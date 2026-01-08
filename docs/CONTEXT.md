@@ -15,6 +15,7 @@
   - **Dual Market Open Strategy (DEFAULT, ENABLED)** - trades at both EUR (8:00 UTC) and US (13:00 UTC) market opens
     - Shows +107% improvement over single daily open (12-month backtest: +2,900 pips vs +1,399 pips)
     - Default configuration in `app/config/settings.py`
+    - **Same-Direction Position Logic**: Keeps existing position if new signal is same direction (saves 4 pips spread costs per trade)
   - Single Daily Open Strategy (still available, can be enabled by setting `DUAL_MARKET_OPEN_ENABLED = False`)
   - Market regime detection (bull/bear/chop)
   - OANDA API integration with full trading operations (practice and live modes)
@@ -56,6 +57,10 @@
     - Market Sessions (`src/market_sessions.py`): Market open time utilities and price approximation
     - OANDA API (`src/oanda_api.py`): OANDA API utilities for data fetching
     - Main Analysis (`src/main.py`): Main backtesting entry point with regime analysis and strategy comparison
+  - **Backtesting Scripts** (`scripts/backtests/`):
+    - `backtest_12month.py`: 12-month backtest comparison (single vs dual market open)
+    - `backtest_same_direction_comparison.py`: Comparison of current vs new same-direction position rules
+    - `analyze_drawdown.py`: Drawdown metrics analysis from backtest results
 - **Data store**: CSV files for historical data (`data/`), OANDA API for live data
 - **Auth**: OANDA API token (stored in environment variables or `.env` via python-dotenv)
 - **Integrations**: 
@@ -69,6 +74,11 @@
   ```bash
   # Backtesting
   python -m src.main
+  
+  # Standalone backtest scripts
+  python scripts/backtests/backtest_12month.py
+  python scripts/backtests/backtest_same_direction_comparison.py
+  python scripts/backtests/analyze_drawdown.py
   
   # Trading app - check account status
   python -m app.main --status
@@ -162,6 +172,7 @@
   - Single mode: Max 1 trade per day
   - Dual mode: Max 2 trades per day (one per session, but only if first trade closed)
   - Only one position open at a time
+  - **Same-Direction Position Logic**: If EUR position still open at US market open and US signal is same direction, keeps existing position (saves 4 pips spread costs: 2 close + 2 open)
 - **Configuration**: 
   - `DUAL_MARKET_OPEN_ENABLED`: True by default (enables dual market open strategy)
   - `EUR_MARKET_OPEN_HOUR`: 8 (8:00 UTC) by default
@@ -179,6 +190,9 @@
 - **API rate limits** from OANDA must be respected
 
 ## Changelog (newest first)
+- 2026-01-08: Implemented same-direction position logic - keeps existing position if new signal is same direction (saves 4 pips spread costs per trade)
+- 2026-01-08: Reorganized backtesting scripts to `scripts/backtests/` directory for better organization
+- 2026-01-08: Fixed currency display in position status logs (was showing financing cost instead of currency)
 - 2026-01-02: Updated position size from 1 unit (micro lot) to 1,000 units (mini lot = $1 per pip)
 - 2026-01-02: Fixed OANDA API datetime formatting issue (400 Bad Request errors) - now uses RFC3339 format with microseconds stripped
 - 2026-01-01: Updated CONTEXT.md and documentation to reflect current codebase state

@@ -112,3 +112,5 @@ docker run -d --env-file .env trading-app
 
 
 
+
+

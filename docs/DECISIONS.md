@@ -261,3 +261,24 @@ This document records architectural decisions made for the FX Open-Range Lab pro
   - Consistent datetime handling across all OANDA API requests
   - Slight precision loss (microseconds removed), but acceptable for trading operations
   - Applied to both `from_time` and `to_time` parameters in `fetch_candles()` method
+
+## ADR-016 - Same-Direction Position Logic
+- **Date**: 2026-01-08
+- **Decision**: Keep existing position if new signal is in the same direction, instead of closing and reopening
+- **Why**: 
+  - Saves 4 pips in spread costs per trade (2 pips to close + 2 pips to open)
+  - Backtest shows identical performance (2900.73 pips) with 52 same-direction trades kept
+  - Avoids unnecessary closing/reopening when signals align
+  - Reduces transaction costs without affecting strategy performance
+  - For 10 pip TP strategy, saving 4 pips is significant (40% of profit target)
+- **Alternatives considered**: 
+  - Always close and reopen (current behavior - wastes spread costs)
+  - Close and reopen only if new entry would be significantly better (>3 pips)
+  - Close and reopen if existing position is far from TP (>8 pips away)
+- **Consequences**: 
+  - Saves 208 pips in spread costs over 12-month period (52 trades × 4 pips)
+  - No performance degradation (backtest shows identical results)
+  - Better position management (avoids unnecessary trades)
+  - Clearer logging when keeping positions vs blocking trades
+  - Only applies when signals are same direction; different direction still blocks to prevent conflict
+  - Implementation in `_try_market_open_trade()` method checks signal direction before blocking

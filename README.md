@@ -53,7 +53,15 @@ fx-open-range-project/
 ├── docs/                   # Additional documentation
 │   ├── CONTEXT.md          # Project context
 │   ├── TASKS.md            # Task tracking
+│   ├── DECISIONS.md        # Architectural decisions
 │   └── *.md                # Other documentation files
+├── scripts/                # Utility scripts
+│   ├── backtests/          # Standalone backtesting scripts
+│   │   ├── backtest_12month.py
+│   │   ├── backtest_same_direction_comparison.py
+│   │   ├── analyze_drawdown.py
+│   │   └── README.md
+│   └── setup-cursor-project.py
 ├── logs/                   # Trading application logs
 │   └── trading_YYYYMMDD.log
 ├── requirements.txt        # Python dependencies
@@ -105,10 +113,24 @@ This will:
 
 **Run 12-month backtest comparison:**
 ```bash
-python backtest_12month.py
+python scripts/backtests/backtest_12month.py
 ```
 
 This compares single daily open vs dual market open strategies over the past 12 months.
+
+**Run same-direction position comparison:**
+```bash
+python scripts/backtests/backtest_same_direction_comparison.py
+```
+
+This compares current vs new same-direction position rules (keeps existing position if new signal is same direction).
+
+**Analyze drawdown metrics:**
+```bash
+python scripts/backtests/analyze_drawdown.py
+```
+
+This analyzes drawdown metrics from backtest results.
 
 ### Automated Trading Application
 
@@ -134,18 +156,20 @@ python -m app.main
    - **Max trades:** 1 per day
 
 2. **Dual Market Open Strategy** (Recommended - enabled by default):
-   - **Trading windows:** 8:00 UTC (EUR open) and 13:00 UTC (US open)
-   - **12-Month Performance:** +2,900 pips, 87% win rate, 428 trades
-   - **Improvement:** +107% more pips vs single daily open
-   - **Max trades:** 2 per day (one per session, but only if first trade closed)
-   - See [Dual Market Open Guide](docs/DUAL_MARKET_OPEN_GUIDE.md) for setup
+  - **Trading windows:** 8:00 UTC (EUR open) and 13:00 UTC (US open)
+  - **12-Month Performance:** +2,900 pips, 87% win rate, 428 trades
+  - **Improvement:** +107% more pips vs single daily open
+  - **Max trades:** 2 per day (one per session, but only if first trade closed)
+  - **Same-Direction Logic:** Keeps EUR position if US signal is same direction (saves 4 pips spread costs)
+  - See [Dual Market Open Guide](docs/DUAL_MARKET_OPEN_GUIDE.md) for setup
 
 **Common Features:**
 - **Practice mode by default** (safe for testing)
 - **Strategy:** Price Trend (SMA20) Directional
 - **Take Profit:** 10 pips
 - **Stop Loss:** None (EOD exit if TP not hit)
-- **Position size:** 1 unit (micro lot)
+- **Position size:** 10,000 units (1 mini lot = $1 per pip for EUR/USD)
+- **Same-Direction Position Logic:** Keeps existing position if new signal is same direction (saves 4 pips spread costs)
 
 See `app/HOW_TO_RUN.md` for detailed instructions and `app/TRADE_TIMING.md` for timing details.
 
@@ -207,6 +231,7 @@ The framework includes two production-ready strategies based on comprehensive ba
   - Entry: EUR market open (8:00 UTC) and/or US market open (13:00 UTC)
   - Max 2 trades per day (one per session, but only if first trade closed)
   - Only one position open at a time
+  - **Same-Direction Logic**: If EUR position still open at US market open and US signal is same direction, keeps existing position (saves 4 pips spread costs: 2 close + 2 open)
 - **Session Performance:**
   - EUR Market: +1,399 pips, 78% win rate, 240 trades
   - US Market: +1,501 pips, 100% win rate, 188 trades
@@ -260,12 +285,13 @@ The backtesting engine:
 **Live trading parameters** (configured in `app/config/settings.py`):
 - `take_profit_pips`: 10.0 pips
 - `stop_loss_pips`: None (EOD exit)
-- `position_size`: 1 unit (micro lot)
+- `position_size`: 10,000 units (1 mini lot = $1 per pip for EUR/USD)
 - `dual_market_open_enabled`: True (default, recommended)
 - `eur_market_open_hour`: 8 (8:00 UTC)
 - `us_market_open_hour`: 13 (13:00 UTC)
 - `max_daily_trades`: 2 (when dual market enabled)
 - `trading_hours`: 22:00-23:00 UTC (used only when dual market disabled)
+- **Same-Direction Position Logic**: Enabled by default - keeps existing position if new signal is same direction
 
 These differences reflect the strategy optimization: the 10-pip TP with EOD exit has shown better risk-adjusted returns in testing.
 
@@ -366,6 +392,22 @@ tail -20 logs/trading_$(date +%Y%m%d).log
 - **Live trading uses real money** - always test in practice mode first
 - The application defaults to practice mode for safety
 
+## Recent Updates
+
+- **2026-01-08**: Implemented same-direction position logic - keeps existing position if new signal is same direction (saves 4 pips spread costs per trade)
+- **2026-01-08**: Reorganized backtesting scripts to `scripts/backtests/` directory
+- **2026-01-08**: Fixed currency display in position status logs
+- **2026-01-02**: Updated position size from 1 unit (micro lot) to 10,000 units (mini lot = $1 per pip)
+- **2026-01-02**: Fixed OANDA API datetime formatting to prevent 400 Bad Request errors
+
+## Recent Updates
+
+- **2026-01-08**: Implemented same-direction position logic - keeps existing position if new signal is same direction (saves 4 pips spread costs per trade)
+- **2026-01-08**: Reorganized backtesting scripts to `scripts/backtests/` directory
+- **2026-01-08**: Fixed currency display in position status logs
+- **2026-01-02**: Updated position size from 1 unit (micro lot) to 10,000 units (mini lot = $1 per pip)
+- **2026-01-02**: Fixed OANDA API datetime formatting to prevent 400 Bad Request errors
+
 ## Future Enhancements
 
 Potential areas for extension:
@@ -386,6 +428,7 @@ Potential areas for extension:
   - Day-of-week patterns
   - Calendar effects (month-end, quarter-end)
   - Intraday refinement with M5/M15/H1 data for accurate market open prices
+  - Automatic EOD position closing at 22:00 UTC
 
 ## License
 

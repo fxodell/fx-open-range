@@ -61,6 +61,10 @@ This document tracks current tasks, improvements, and future work for the FX Ope
 
 ## Completed Tasks
 
+- [x] Implemented same-direction position logic - keeps existing position if new signal is same direction (saves 4 pips spread costs)
+- [x] Created backtest comparison script for same-direction position rules (`scripts/backtests/backtest_same_direction_comparison.py`)
+- [x] Reorganized backtesting scripts to `scripts/backtests/` directory for better organization
+- [x] Fixed currency display in position status logs (was showing financing cost instead of currency)
 - [x] Fixed OANDA API datetime formatting to prevent 400 Bad Request errors (RFC3339 format)
 - [x] Updated position sizing from 1 unit (micro lot) to 1,000 units (mini lot = $1 per pip)
 - [x] Dual Market Open Strategy implementation (EUR 8:00 UTC + US 13:00 UTC)
