@@ -468,6 +468,9 @@ class TradingEngine:
     
     def _run_dual_market_open(self) -> None:
         """Run dual market open trading logic with position checks at each market open."""
+        # Ensure daily reset happens if it's a new day (call has_traded_today to trigger reset)
+        self.has_traded_today()
+        
         # Check EUR market open
         if self.check_eur_market_open():
             # Check positions at EUR market open time (not at function start)
