@@ -46,6 +46,22 @@ python scripts/backtests/analyze_drawdown.py
 - Analyzes drawdown on losing days
 - Uses dual market open strategy with 12-month data
 
+### `analyze_90day_risk.py`
+90-day risk analysis for account sizing and adverse pip tracking.
+
+**Usage:**
+```bash
+python scripts/backtests/analyze_90day_risk.py
+```
+
+**What it does:**
+- Analyzes the last 90 days of trading data
+- Calculates max drawdown for the period
+- Tracks adverse pips (pips that go against open trades)
+- Calculates max and average pips per day that go against open trades
+- Determines required account size for micro account to avoid blowing out
+- Uses dual market open strategy
+
 ## Requirements
 
 All scripts require:
