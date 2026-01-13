@@ -1,0 +1,22 @@
+[Unit]
+Description=FX Open-Range Trading Application
+After=network.target
+
+[Service]
+Type=simple
+User=mike
+Group=mike
+WorkingDirectory=/opt/fx-open-range
+ExecStart=/opt/fx-open-range/venv/bin/python3 -m app.main
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables (loaded from .env file in WorkingDirectory)
+Environment="PATH=/usr/bin:/usr/local/bin"
+
+[Install]
+WantedBy=multi-user.target
+
+

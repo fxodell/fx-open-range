@@ -246,6 +246,22 @@ The status command shows open positions, or check in OANDA platform.
 
 ## Running in Background (Linux/Mac)
 
+### Using systemd Service (Recommended for Production):
+```bash
+# Install and start the service (auto-restarts, starts on boot)
+sudo /opt/fx-open-range/setup-service.sh
+sudo systemctl start fx-open-range
+
+# Check status
+sudo systemctl status fx-open-range
+
+# View logs
+sudo journalctl -u fx-open-range -f
+
+# Stop the service
+sudo systemctl stop fx-open-range
+```
+
 ### Using `nohup`:
 ```bash
 nohup python -m app.main > trading_output.log 2>&1 &

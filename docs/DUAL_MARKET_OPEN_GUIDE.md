@@ -14,7 +14,20 @@ The Dual Market Open Strategy trades at both EUR market open (8:00 UTC) and US m
 
 ### Start the Strategy
 
-**Option 1: Run Continuously (Recommended)**
+**Option 1: systemd Service (Recommended for Production)**
+```bash
+# Install and start the service (runs in background, auto-restarts, starts on boot)
+sudo /opt/fx-open-range/setup-service.sh
+sudo systemctl start fx-open-range
+
+# Check status
+sudo systemctl status fx-open-range
+
+# View logs
+sudo journalctl -u fx-open-range -f
+```
+
+**Option 2: Run Continuously (Manual)**
 ```bash
 # Start in background (runs continuously, checks every 60 seconds)
 nohup python -m app.main > /dev/null 2>&1 &
@@ -23,7 +36,7 @@ nohup python -m app.main > /dev/null 2>&1 &
 python -m app.main
 ```
 
-**Option 2: Run in Screen/Tmux (Best for Remote Servers)**
+**Option 3: Run in Screen/Tmux (For Remote Servers)**
 ```bash
 # Using screen
 screen -S trading
@@ -36,7 +49,7 @@ python -m app.main
 # Press Ctrl+B then D to detach
 ```
 
-**Option 3: Run Once (Testing)**
+**Option 4: Run Once (Testing)**
 ```bash
 # Check signal and execute if needed (exits after one check)
 python -m app.main --once

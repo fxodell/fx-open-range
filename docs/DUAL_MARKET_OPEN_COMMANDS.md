@@ -6,8 +6,19 @@ Quick reference guide for starting, stopping, and monitoring the Dual Market Ope
 
 ### Start Strategy
 
+**Production (Recommended - systemd service):**
 ```bash
-# Start in background (recommended)
+# Install and start service (auto-restarts, starts on boot)
+sudo /opt/fx-open-range/setup-service.sh
+sudo systemctl start fx-open-range
+
+# Check status
+sudo systemctl status fx-open-range
+```
+
+**Manual Background:**
+```bash
+# Start in background
 nohup python -m app.main > /dev/null 2>&1 &
 
 # Start in foreground (press Ctrl+C to stop)
@@ -48,6 +59,16 @@ grep -i "signal" logs/trading_$(date +%Y%m%d).log
 
 ### Stop Strategy
 
+**If running as systemd service:**
+```bash
+# Stop the service
+sudo systemctl stop fx-open-range
+
+# Disable auto-start on boot
+sudo systemctl disable fx-open-range
+```
+
+**If running manually:**
 ```bash
 # Find running process
 ps aux | grep "python -m app.main"

@@ -52,33 +52,59 @@ python -m app.main --interval 60
 
 ## Production Deployment
 
-### Using systemd (Linux)
+### Using systemd (Linux) - Recommended
 
-Create `/etc/systemd/system/trading-app.service`:
+A systemd service file is provided at `/opt/fx-open-range/fx-open-range.service`.
 
-```ini
-[Unit]
-Description=FX Trading Application
-After=network.target
-
-[Service]
-Type=simple
-User=trading
-WorkingDirectory=/path/to/fx-open-range-project
-ExecStart=/usr/bin/python3 -m app.main
-Restart=always
-RestartSec=10
-Environment="PATH=/usr/bin:/usr/local/bin"
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
+**Quick Setup:**
 ```bash
-sudo systemctl enable trading-app
-sudo systemctl start trading-app
+# Install and enable the service
+sudo /opt/fx-open-range/setup-service.sh
+
+# Start the service
+sudo systemctl start fx-open-range
+
+# Check status
+sudo systemctl status fx-open-range
 ```
+
+**Manual Setup:**
+```bash
+# Copy service file to systemd directory
+sudo cp /opt/fx-open-range/fx-open-range.service /etc/systemd/system/
+
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Enable service to start on boot
+sudo systemctl enable fx-open-range
+
+# Start the service
+sudo systemctl start fx-open-range
+```
+
+**Service Management:**
+```bash
+# Check service status
+sudo systemctl status fx-open-range
+
+# View live logs
+sudo journalctl -u fx-open-range -f
+
+# View recent logs
+sudo journalctl -u fx-open-range -n 100
+
+# Stop the service
+sudo systemctl stop fx-open-range
+
+# Restart the service
+sudo systemctl restart fx-open-range
+
+# Disable auto-start on boot
+sudo systemctl disable fx-open-range
+```
+
+**Note:** The service runs as user `mike` in practice mode by default. Ensure your `.env` file is configured with `OANDA_API_TOKEN` and `OANDA_PRACTICE_MODE=true` in `/opt/fx-open-range/.env`.
 
 ### Using Docker
 
