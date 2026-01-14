@@ -23,7 +23,7 @@ class Settings:
     INSTRUMENT: str = "EUR_USD"
     TAKE_PROFIT_PIPS: float = 10.0
     STOP_LOSS_PIPS: Optional[float] = None  # None = EOD exit (no stop loss)
-    POSITION_SIZE: int = 10000  # Units (1 mini lot = $1 per pip for EUR/USD)
+    POSITION_SIZE: int = 1000  # Units (1 micro lot = $0.10 per pip for EUR/USD)
     SPREAD_COST_PIPS: float = 2.0  # Estimated spread cost
     
     # Strategy Configuration (Price Trend SMA20)
@@ -72,6 +72,8 @@ class Settings:
         
         if cls.POSITION_SIZE > 10000:
             warnings.append(f"⚠️  Large position size: {cls.POSITION_SIZE} units")
+        elif cls.POSITION_SIZE == 1000:
+            warnings.append(f"✓ Micro account: {cls.POSITION_SIZE} units = $0.10 per pip")
         
         return warnings
     

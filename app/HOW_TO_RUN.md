@@ -66,10 +66,22 @@ python -m app.main
 ```
 
 **Live Mode (Real Money - Requires Confirmation):**
+
+**Option 1: Command Line Flag (Recommended)**
 ```bash
 python -m app.main --mode live
 ```
+
+**Option 2: Set in `.env` File**
+```bash
+# Edit .env file and set:
+OANDA_PRACTICE_MODE=false
+# Then run normally:
+python -m app.main
+```
+
 ⚠️ **WARNING**: This uses real money!
+💡 **Note**: See `docs/MICRO_ACCOUNT_SETUP.md` for complete live account setup guide.
 
 ---
 
@@ -99,10 +111,12 @@ python -m app.main --once
 ```
 ✓ Connected successfully
 Signal: long, Price: 1.17236, SMA20: 1.16497
-Placing long order: 1 units, TP=10.0 pips
+Placing long order: 1000 units, TP=10.0 pips
 Order placed successfully
 Done.
 ```
+
+**Note:** Position size is set to 1,000 units (micro account = $0.10 per pip). See `docs/MICRO_ACCOUNT_SETUP.md` for details.
 
 ### 3. Run Continuously
 
